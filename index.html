@@ -240,6 +240,31 @@
       transform: scale(.98);
     }
 
+    .btn-danger {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      min-height: var(--tap);
+      margin-top: 12px;
+    }
+
+    .btn-danger:hover {
+      opacity: .9;
+    }
+
+    .btn-danger:active {
+      transform: scale(.98);
+    }
+
     .login-error {
       background: rgba(239, 68, 68, .12);
       border: 1px solid rgba(239, 68, 68, .3);
@@ -2010,8 +2035,7 @@
                     </div>
                   </div>
                   <div class="progress-item">
-                    <div class="progress-label"><span>Custo Real x Estimado</span><span
-                        id="dash-percent-custo">0%</span></div>
+                    <div class="progress-label"><span>Custo Real x Estimado</span><span id="dash-percent-custo">0%</span></div>
                     <div class="progress-bar">
                       <div class="progress-fill amber" id="dash-progress-custo" style="width: 0%"></div>
                     </div>
@@ -2318,7 +2342,7 @@
           <div class="form-card" style="margin-top:12px;">
             <h3>📋 Compras Registradas</h3>
             <div class="table-wrap">
-              表格
+              <table>
                 <thead>
                   <tr>
                     <th>Data</th>
@@ -2595,7 +2619,7 @@
           <div class="form-card">
             <h3>📋 Lista de Veículos (editar/excluir)</h3>
             <div class="table-wrap">
-              表格
+              <table>
               <thead>
                 <tr>
                   <th>Veículo</th>
@@ -2630,7 +2654,7 @@
           <div class="form-card">
             <h3>📋 Lista de Equipamentos (editar/excluir)</h3>
             <div class="table-wrap">
-              表格
+              <table>
               <thead>
                 <tr>
                   <th>Equipamento</th>
@@ -2640,6 +2664,16 @@
               <tbody id="tbody-equipamentos"></tbody>
               </table>
             </div>
+          </div>
+          <!-- Botão de Limpeza de Dados -->
+          <div class="form-card" style="margin-top:16px; border-color: rgba(239,68,68,0.3);">
+            <h3 style="color: #ef4444;">🧹 Limpeza de Dados</h3>
+            <div class="alert" id="limpeza-alert"></div>
+            <p style="font-size:12px; color: var(--text2); margin-bottom:12px;">
+              ⚠️ <strong>Atenção:</strong> Esta ação irá <strong>apagar permanentemente</strong> todos os dados de abastecimentos, entradas de combustível, compras, ordens de serviço e zerar o estoque. 
+              As configurações de veículos e equipamentos serão preservadas.
+            </p>
+            <button class="btn-danger btn-full" onclick="confirmarLimpezaTotal()">🗑️ LIMPAR TODOS OS DADOS DO SISTEMA</button>
           </div>
         </div>
 
@@ -2813,7 +2847,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, updateDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, updateDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBwlnauNCiv2AOJiQ2AtyxLCb4eU7QtBrU",
@@ -2877,6 +2911,72 @@
       localStorage.removeItem('cf_sessao_firebase');
       document.getElementById('login-screen').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
+    };
+
+    // Função para limpar todos os dados
+    window.limparTodosOsDados = async () => {
+      const alertDiv = document.getElementById('limpeza-alert');
+      
+      try {
+        alertDiv.className = 'alert show warning';
+        alertDiv.innerHTML = '🔄 Limpando dados... Aguarde...';
+        
+        // 1. Limpar Abastecimentos
+        const abastSnapshot = await getDocs(abastCollection);
+        const batchAbast = writeBatch(db);
+        abastSnapshot.docs.forEach(docSnap => batchAbast.delete(docSnap.ref));
+        await batchAbast.commit();
+        
+        // 2. Limpar Entradas de Combustível e Correções
+        const entradasSnapshot = await getDocs(entradasCollection);
+        const batchEntradas = writeBatch(db);
+        entradasSnapshot.docs.forEach(docSnap => batchEntradas.delete(docSnap.ref));
+        await batchEntradas.commit();
+        
+        // 3. Limpar Compras
+        const comprasSnapshot = await getDocs(comprasCollection);
+        const batchCompras = writeBatch(db);
+        comprasSnapshot.docs.forEach(docSnap => batchCompras.delete(docSnap.ref));
+        await batchCompras.commit();
+        
+        // 4. Limpar Manutenções (OS)
+        const manutSnapshot = await getDocs(manutCollection);
+        const batchManut = writeBatch(db);
+        manutSnapshot.docs.forEach(docSnap => batchManut.delete(docSnap.ref));
+        await batchManut.commit();
+        
+        // 5. Resetar Estoque para 0
+        await setDoc(estoqueDoc, { valor: 0 });
+        
+        alertDiv.className = 'alert show success';
+        alertDiv.innerHTML = '✅ LIMPEZA CONCLUÍDA! Todos os dados foram removidos. O sistema está pronto para uso.';
+        
+        // Atualizar interfaces
+        window.updateDashboard();
+        window.renderCompras();
+        window.renderManutHistorico();
+        window.renderManutDashboard();
+        
+        setTimeout(() => {
+          alertDiv.className = 'alert';
+        }, 5000);
+        
+      } catch (error) {
+        console.error('Erro durante limpeza:', error);
+        alertDiv.className = 'alert show error';
+        alertDiv.innerHTML = `❌ ERRO: ${error.message}. Tente novamente.`;
+        setTimeout(() => {
+          alertDiv.className = 'alert';
+        }, 5000);
+      }
+    };
+
+    window.confirmarLimpezaTotal = () => {
+      if (confirm('⚠️ ATENÇÃO! Isso irá APAGAR PERMANENTEMENTE:\n\n- Todos os abastecimentos\n- Todas as entradas de combustível\n- Todas as compras\n- Todas as ordens de serviço\n- Zerar o estoque\n\nAs configurações de veículos e equipamentos serão PRESERVADAS.\n\nEsta ação NÃO PODE SER DESFEITA! Continuar?')) {
+        if (confirm('ÚLTIMA CONFIRMAÇÃO: Tem certeza absoluta que deseja apagar TODOS os dados do sistema?')) {
+          window.limparTodosOsDados();
+        }
+      }
     };
 
     // Função para carregar dados em tempo real
@@ -3393,8 +3493,8 @@
     window.renderCompras = () => {
       const lista = window.compras || [];
       const tbody = document.getElementById('tbody-compras');
-      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div>NonNull</table>`; return; }
-      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span><td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span></td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></tr>`).join('');
+      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div></td></tr>`; return; }
+      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span></td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></td></tr>`).join('');
     };
 
     window.abrirModalEditarCompra = (id) => {
@@ -3508,9 +3608,9 @@
       document.getElementById('relatorio-qtd-periodo').textContent = lista.length;
       const tbody = document.getElementById('tbody-relatorio-compras');
       if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div>NonNull</tr>`;
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div></td></tr>`;
       } else {
-        tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:180px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></tr>`).join('');
+        tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:180px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></td></tr>`).join('');
       }
       document.getElementById('relatorio-compra-resultado').style.display = 'block';
     };
@@ -3609,9 +3709,9 @@
       else fluxoEl.innerHTML = todosEventos.map(ev => { const isPos = ev.delta > 0; const deltaStr = (isPos ? '+' : '') + ev.delta.toFixed(1) + ' L'; const saldoStr = ev.estoqueApos !== null && ev.estoqueApos !== undefined ? 'Saldo: ' + ev.estoqueApos.toFixed(1) + ' L' : ''; let tipoEmoji = ev.tipo === 'Abastecimento' ? '⛽' : (ev.tipo === 'Entrada' ? '🛢️' : '⚖️'); return `<div class="saldo-row"><span class="saldo-dt">${ev.dt}</span><span class="saldo-tipo"><span class="badge ${ev.tipo === 'Abastecimento' ? 'tipo-abast' : (ev.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-correcao')}">${tipoEmoji} ${ev.tipo}</span></span><span class="saldo-delta ${isPos ? 'pos' : 'neg'}">${deltaStr}</span><span class="saldo-after">${saldoStr}</span><span class="saldo-desc">${ev.equip ? ev.equip + (ev.desc ? ' · ' + ev.desc : '') : ev.desc}</span></div>`; }).join('');
       const tbody = document.getElementById('tbody-report');
       if (abastFilt.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum abastecimento encontrado.</p></div>NonNull</tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum abastecimento encontrado.</p></div></td></tr>`;
       } else {
-        tbody.innerHTML = abastFilt.map(a => `<tr><td style="white-space:nowrap;">${a.dt}</span></td><td style="white-space:nowrap;">${window.badgeEquip(a.equip, a.equipOrig)}</span></td><td style="white-space:nowrap;">${a.operador || '—'}</span></td><td style="color:var(--accent);font-weight:500;">${a.litros.toFixed(1)} L</span></td><td style="white-space:nowrap;">${a.medicao !== null && a.tipo !== 'nenhum' ? (a.medicao.toFixed(1) + ' ' + (a.tipo === 'km' ? 'km' : 'h')) : '—'}</span></td><td style="white-space:nowrap;">${a.intervalo}</span></td><td class="text-wrap">${a.obs || '—'}</span><td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarAbast('${a.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirAbast('${a.id}')" title="Excluir">🗑</button></span></tr>`).join('');
+        tbody.innerHTML = abastFilt.map(a => `<tr><td style="white-space:nowrap;">${a.dt}</span></td><td style="white-space:nowrap;">${window.badgeEquip(a.equip, a.equipOrig)}</span></td><td style="white-space:nowrap;">${a.operador || '—'}</span></td><td style="color:var(--accent);font-weight:500;">${a.litros.toFixed(1)} L</span></td><td style="white-space:nowrap;">${a.medicao !== null && a.tipo !== 'nenhum' ? (a.medicao.toFixed(1) + ' ' + (a.tipo === 'km' ? 'km' : 'h')) : '—'}</span></td><td style="white-space:nowrap;">${a.intervalo}</span></td><td class="text-wrap">${a.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarAbast('${a.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirAbast('${a.id}')" title="Excluir">🗑</button></span></td></tr>`).join('');
       }
       document.getElementById('rel-analytics').style.display = 'block';
     };
@@ -3775,8 +3875,8 @@
       if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
       if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
       const tbody = document.getElementById('tbody-manut');
-      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</td>`; return; }
-      tbody.innerHTML = lista.map(m => `<tr><td style="white-space:nowrap;">${m.dt}</span></td><td style="white-space:nowrap;">${m.nome}</span></td><td style="white-space:nowrap;">${m.tipoManut}</span></td><td style="white-space:nowrap;"><span class="badge ${m.tipoItem === 'veiculo' ? 'cam' : 'out'}">${m.tipoItem === 'veiculo' ? '🚗 Veículo' : '⚙️ Equipamento'}</span></span></td><td style="white-space:nowrap;"><span class="badge ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}">${m.prioridade}</span></span></td><td style="white-space:nowrap;"><span class="badge ${window.statusClass(m.status)}">${m.status}</span></span></td><td style="white-space:nowrap;">${m.responsavel || '—'}</span></td><td style="white-space:nowrap;">R$ ${(m.custoReal !== null ? m.custoReal : (m.custoEstimado || 0)).toFixed(2)}</span></td><td class="text-wrap" style="max-width:180px;">${m.descricao.substring(0, 50)}${m.descricao.length > 50 ? '...' : ''}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalStatus('${m.id}')" style="color:var(--blue2);" title="Alterar Status">📝</button><button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button></span></td>`).join('');
+      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`; return; }
+      tbody.innerHTML = lista.map(m => `<tr><td style="white-space:nowrap;">${m.dt}</span></td><td style="white-space:nowrap;">${m.nome}</span></td><td style="white-space:nowrap;">${m.tipoManut}</span></td><td style="white-space:nowrap;"><span class="badge ${m.tipoItem === 'veiculo' ? 'cam' : 'out'}">${m.tipoItem === 'veiculo' ? '🚗 Veículo' : '⚙️ Equipamento'}</span></span></td><td style="white-space:nowrap;"><span class="badge ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}">${m.prioridade}</span></span></td><td style="white-space:nowrap;"><span class="badge ${window.statusClass(m.status)}">${m.status}</span></span></td><td style="white-space:nowrap;">${m.responsavel || '—'}</span></td><td style="white-space:nowrap;">R$ ${(m.custoReal !== null ? m.custoReal : (m.custoEstimado || 0)).toFixed(2)}</span></td><td class="text-wrap" style="max-width:180px;">${m.descricao.substring(0, 50)}${m.descricao.length > 50 ? '...' : ''}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalStatus('${m.id}')" style="color:var(--blue2);" title="Alterar Status">📝</button><button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button></span></tr>`).join('');
     };
 
     window.delManut = async (id) => { if (confirm('Excluir esta OS?')) { await deleteDoc(doc(db, "manutencoes", id)); } };
