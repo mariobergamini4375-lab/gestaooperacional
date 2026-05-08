@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Controle de Operações</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
@@ -263,6 +264,27 @@
 
     .btn-danger:active {
       transform: scale(.98);
+    }
+
+    .btn-excel {
+      padding: 12px 18px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: var(--tap);
+    }
+
+    .btn-excel:hover {
+      opacity: .9;
     }
 
     .login-error {
@@ -2223,7 +2245,7 @@
               <div class="form-group"><label>Operador</label><input type="text" id="rel-operador"
                   placeholder="Filtrar operador"></div>
               <div class="filter-actions"><button class="btn-submit" onclick="gerarRelatorio()">🔎 Gerar
-                  Relatório</button><button class="btn-secondary" onclick="salvarPDF()">📄 PDF</button><button
+                  Relatório</button><button class="btn-secondary" onclick="salvarPDF()">📄 PDF</button><button class="btn-excel" onclick="exportarRelatorioExcel()">📊 Excel</button><button
                   class="btn-secondary" onclick="window.print()">🖨 Imprimir</button></div>
             </div>
           </div>
@@ -2396,7 +2418,7 @@
               <div class="filter-actions"><button class="btn-submit" onclick="gerarRelatorioCompras()">🔎 Gerar
                   Relatório</button><button class="btn-secondary" onclick="limparFiltrosRelatorioCompras()">✕
                   Limpar</button><button class="btn-secondary" onclick="salvarRelatorioComprasPDF()">📄 Salvar
-                  PDF</button></div>
+                  PDF</button><button class="btn-excel" onclick="exportarRelatorioComprasExcel()">📊 Excel</button></div>
             </div>
           </div>
           <div id="relatorio-compra-resultado">
@@ -2540,6 +2562,7 @@
               </select>
               <button class="btn-secondary" onclick="renderManutHistorico()">🔎</button>
               <button class="btn-secondary" onclick="salvarOSPDF()" title="Exportar OS para PDF">📄 PDF</button>
+              <button class="btn-excel" onclick="exportarOSExcel()" title="Exportar OS para Excel">📊 Excel</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -2627,7 +2650,7 @@
                 </tr>
               </thead>
               <tbody id="tbody-veiculos"></tbody>
-              </table>
+            </table>
             </div>
           </div>
         </div>
@@ -2662,7 +2685,7 @@
                 </tr>
               </thead>
               <tbody id="tbody-equipamentos"></tbody>
-              </table>
+            </table>
             </div>
           </div>
           <!-- Botão de Limpeza de Dados -->
@@ -3665,6 +3688,46 @@
       doc.save(`relatorio_compras_${de || 'inicio'}_a_${ate || 'hoje'}.pdf`);
     };
 
+    // Exportar Relatório Compras para Excel
+    window.exportarRelatorioComprasExcel = () => {
+      const de = document.getElementById('relatorio-compra-de').value;
+      const ate = document.getElementById('relatorio-compra-ate').value;
+      const fornecedorFiltro = document.getElementById('relatorio-fornecedor').value.trim().toLowerCase();
+      const categoriaFiltro = document.getElementById('relatorio-categoria').value;
+      const pagamentoFiltro = document.getElementById('relatorio-pagamento').value;
+      const responsavelFiltro = document.getElementById('relatorio-responsavel').value.trim().toLowerCase();
+
+      let lista = window.compras || [];
+      if (de) lista = lista.filter(c => new Date(c.dataCompra) >= new Date(de + 'T00:00:00'));
+      if (ate) lista = lista.filter(c => new Date(c.dataCompra) <= new Date(ate + 'T23:59:59'));
+      if (fornecedorFiltro) lista = lista.filter(c => c.fornecedor.toLowerCase().includes(fornecedorFiltro));
+      if (categoriaFiltro) lista = lista.filter(c => c.categoria === categoriaFiltro);
+      if (pagamentoFiltro) lista = lista.filter(c => c.pagamento === pagamentoFiltro);
+      if (responsavelFiltro) lista = lista.filter(c => (c.responsavel || '').toLowerCase().includes(responsavelFiltro));
+
+      if (lista.length === 0) { alert('Nenhuma compra para exportar.'); return; }
+
+      const dados = lista.map(c => ({
+        'Data': c.dataCompraStr,
+        'Fornecedor': c.fornecedor,
+        'Categoria': c.categoria,
+        'Descrição': c.descricao,
+        'Valor (R$)': c.valor,
+        'Pagamento': c.pagamento,
+        'Data Pagamento': c.dataPagamentoStr || '',
+        'NF/Pedido': c.nf || '',
+        'Responsável': c.responsavel || '',
+        'Quantidade': c.quantidade !== null ? c.quantidade : '',
+        'Custo Unitário (R$)': c.custoUnit !== null ? c.custoUnit : '',
+        'Observações': c.obs || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Relatorio Compras');
+      XLSX.writeFile(wb, `relatorio_compras_${de || 'inicio'}_a_${ate || 'hoje'}.xlsx`);
+    };
+
     let _relatorioAtual = [];
     window.gerarRelatorio = () => {
       window._relatorioGerado = true;
@@ -3709,11 +3772,34 @@
       else fluxoEl.innerHTML = todosEventos.map(ev => { const isPos = ev.delta > 0; const deltaStr = (isPos ? '+' : '') + ev.delta.toFixed(1) + ' L'; const saldoStr = ev.estoqueApos !== null && ev.estoqueApos !== undefined ? 'Saldo: ' + ev.estoqueApos.toFixed(1) + ' L' : ''; let tipoEmoji = ev.tipo === 'Abastecimento' ? '⛽' : (ev.tipo === 'Entrada' ? '🛢️' : '⚖️'); return `<div class="saldo-row"><span class="saldo-dt">${ev.dt}</span><span class="saldo-tipo"><span class="badge ${ev.tipo === 'Abastecimento' ? 'tipo-abast' : (ev.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-correcao')}">${tipoEmoji} ${ev.tipo}</span></span><span class="saldo-delta ${isPos ? 'pos' : 'neg'}">${deltaStr}</span><span class="saldo-after">${saldoStr}</span><span class="saldo-desc">${ev.equip ? ev.equip + (ev.desc ? ' · ' + ev.desc : '') : ev.desc}</span></div>`; }).join('');
       const tbody = document.getElementById('tbody-report');
       if (abastFilt.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum abastecimento encontrado.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum abastecimento encontrado.</p></div>NonNull</tr>`;
       } else {
-        tbody.innerHTML = abastFilt.map(a => `<tr><td style="white-space:nowrap;">${a.dt}</span></td><td style="white-space:nowrap;">${window.badgeEquip(a.equip, a.equipOrig)}</span></td><td style="white-space:nowrap;">${a.operador || '—'}</span></td><td style="color:var(--accent);font-weight:500;">${a.litros.toFixed(1)} L</span></td><td style="white-space:nowrap;">${a.medicao !== null && a.tipo !== 'nenhum' ? (a.medicao.toFixed(1) + ' ' + (a.tipo === 'km' ? 'km' : 'h')) : '—'}</span></td><td style="white-space:nowrap;">${a.intervalo}</span></td><td class="text-wrap">${a.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarAbast('${a.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirAbast('${a.id}')" title="Excluir">🗑</button></span></td></tr>`).join('');
+        tbody.innerHTML = abastFilt.map(a => `<tr><td style="white-space:nowrap;">${a.dt}</span></td><td style="white-space:nowrap;">${window.badgeEquip(a.equip, a.equipOrig)}</span></td><td style="white-space:nowrap;">${a.operador || '—'}</span></td><td style="color:var(--accent);font-weight:500;">${a.litros.toFixed(1)} L</span></td><td style="white-space:nowrap;">${a.medicao !== null && a.tipo !== 'nenhum' ? (a.medicao.toFixed(1) + ' ' + (a.tipo === 'km' ? 'km' : 'h')) : '—'}</span></td><td style="white-space:nowrap;">${a.intervalo}</span><tr><td class="text-wrap">${a.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarAbast('${a.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirAbast('${a.id}')" title="Excluir">🗑</button></span></td></tr>`).join('');
       }
       document.getElementById('rel-analytics').style.display = 'block';
+    };
+
+    // Exportar Relatório Abastecimento para Excel
+    window.exportarRelatorioExcel = () => {
+      if (_relatorioAtual.length === 0) { alert('Gere o relatório primeiro.'); return; }
+      
+      const dados = _relatorioAtual.map(a => ({
+        'Data/Hora': a.dt,
+        'Veículo': a.equip,
+        'Operador': a.operador || '—',
+        'Litros': a.litros,
+        'Horímetro/KM': (a.medicao !== null && a.tipo !== 'nenhum') ? a.medicao.toFixed(1) + ' ' + (a.tipo === 'km' ? 'km' : 'h') : '—',
+        'Intervalo': a.intervalo,
+        'Observação': a.obs || '—'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Relatorio Abastecimentos');
+      
+      const de = document.getElementById('rel-de').value || 'inicio';
+      const ate = document.getElementById('rel-ate').value || 'hoje';
+      XLSX.writeFile(wb, `relatorio_abastecimentos_${de}_a_${ate}.xlsx`);
     };
 
     // Funções para editar/excluir abastecimento
@@ -3877,6 +3963,36 @@
       const tbody = document.getElementById('tbody-manut');
       if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`; return; }
       tbody.innerHTML = lista.map(m => `<tr><td style="white-space:nowrap;">${m.dt}</span></td><td style="white-space:nowrap;">${m.nome}</span></td><td style="white-space:nowrap;">${m.tipoManut}</span></td><td style="white-space:nowrap;"><span class="badge ${m.tipoItem === 'veiculo' ? 'cam' : 'out'}">${m.tipoItem === 'veiculo' ? '🚗 Veículo' : '⚙️ Equipamento'}</span></span></td><td style="white-space:nowrap;"><span class="badge ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}">${m.prioridade}</span></span></td><td style="white-space:nowrap;"><span class="badge ${window.statusClass(m.status)}">${m.status}</span></span></td><td style="white-space:nowrap;">${m.responsavel || '—'}</span></td><td style="white-space:nowrap;">R$ ${(m.custoReal !== null ? m.custoReal : (m.custoEstimado || 0)).toFixed(2)}</span></td><td class="text-wrap" style="max-width:180px;">${m.descricao.substring(0, 50)}${m.descricao.length > 50 ? '...' : ''}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalStatus('${m.id}')" style="color:var(--blue2);" title="Alterar Status">📝</button><button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button></span></tr>`).join('');
+    };
+
+    // Exportar OS para Excel
+    window.exportarOSExcel = () => {
+      const filtroEquip = (document.getElementById('manut-filtro-equip').value || '').toLowerCase();
+      const filtroStatus = document.getElementById('manut-filtro-status').value;
+      let lista = window.manutencoes || [];
+      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
+      if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
+
+      if (lista.length === 0) { alert('Nenhuma OS para exportar.'); return; }
+
+      const dados = lista.map(m => ({
+        'Data': m.dt,
+        'Nome': m.nome,
+        'Tipo Manutenção': m.tipoManut,
+        'Tipo Item': m.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento',
+        'Prioridade': m.prioridade,
+        'Status': m.status,
+        'Responsável': m.responsavel || '—',
+        'Custo (R$)': (m.custoReal !== null ? m.custoReal : (m.custoEstimado || 0)).toFixed(2),
+        'Descrição': m.descricao,
+        'Peças/Materiais': m.pecas || '—',
+        'Observação Conclusão': m.obsConclusao || '—'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Ordens de Servico');
+      XLSX.writeFile(wb, `ordens_servico_${window.formatDT(new Date()).replace(/[/:]/g, '-')}.xlsx`);
     };
 
     window.delManut = async (id) => { if (confirm('Excluir esta OS?')) { await deleteDoc(doc(db, "manutencoes", id)); } };
