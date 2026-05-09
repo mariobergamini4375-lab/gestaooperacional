@@ -2228,7 +2228,7 @@
           </div>
         </div>
 
-        <!-- RELATÓRIO ANALÍTICO UNIFICADO -->
+        <!-- RELATÓRIO ANALÍTICO UNIFICADO (CORRIGIDO) -->
         <div class="section" id="section-relatorio">
           <div class="form-card">
             <h3>🔎 Filtrar período</h3>
@@ -2278,16 +2278,11 @@
               <h3>🏗️ Consumo por Veículo</h3>
               <div id="rel-equip-bars"></div>
             </div>
-            <div class="form-card">
-              <h3>📦 Fluxo de Estoque no Período</h3>
-              <div id="rel-fluxo-wrap">
-                <div class="saldo-timeline" id="rel-fluxo"></div>
-              </div>
-            </div>
+            <!-- Seção "Fluxo de Estoque no Período" REMOVIDA conforme solicitado -->
             <div id="report-table-wrap">
               <div class="form-card" style="padding:0;overflow:hidden;">
                 <div style="padding:14px 16px 0;border-bottom:1px solid var(--border);margin-bottom:0;">
-                  <h3 style="border-bottom:none;margin-bottom:10px;">⛽ Abastecimentos no Período</h3>
+                  <h3 style="border-bottom:none;margin-bottom:10px;">⛽ Abastecimento por Período</h3>
                 </div>
                 <div class="table-wrap" style="border:none;border-radius:0;">
                   <table>
@@ -2295,10 +2290,12 @@
                       <tr>
                         <th>Data / Hora</th>
                         <th>Veículo</th>
-                        <th>Operador</th>
+                        <th>Tipo</th>
+                        <th>Operador/Fornecedor</th>
                         <th>Litros</th>
                         <th>Hor/KM</th>
-                        <th>Intervalo</th>
+                        <th>Intervalo KM</th>
+                        <th>Intervalo Tempo</th>
                         <th>Obs</th>
                         <th>Ações</th>
                       </tr>
@@ -2944,7 +2941,7 @@
       document.getElementById('app').style.display = 'none';
     };
 
-    // Função para limpar todos os dados (VERSÃO CORRIGIDA E ROBUSTA)
+    // Função para limpar todos os dados
     window.limparTodosOsDados = async () => {
       const alertDiv = document.getElementById('limpeza-alert');
 
@@ -2952,37 +2949,31 @@
         alertDiv.className = 'alert show warning';
         alertDiv.innerHTML = '🔄 Limpando dados... Aguarde...';
 
-        // 1. Limpar Abastecimentos (deleção individual garantida)
         const abastSnapshot = await getDocs(abastCollection);
         for (const docSnap of abastSnapshot.docs) {
           await deleteDoc(docSnap.ref);
         }
 
-        // 2. Limpar Entradas de Combustível e Correções (FORÇADO e completo)
         const entradasSnapshot = await getDocs(entradasCollection);
         for (const docSnap of entradasSnapshot.docs) {
           await deleteDoc(docSnap.ref);
         }
 
-        // 3. Limpar Compras
         const comprasSnapshot = await getDocs(comprasCollection);
         for (const docSnap of comprasSnapshot.docs) {
           await deleteDoc(docSnap.ref);
         }
 
-        // 4. Limpar Manutenções (OS)
         const manutSnapshot = await getDocs(manutCollection);
         for (const docSnap of manutSnapshot.docs) {
           await deleteDoc(docSnap.ref);
         }
 
-        // 5. Resetar Estoque para 0
         await setDoc(estoqueDoc, { valor: 0 });
 
         alertDiv.className = 'alert show success';
-        alertDiv.innerHTML = '✅ LIMPEZA CONCLUÍDA! Todos os dados (incluindo entradas e correções) foram removidos. O sistema está pronto para uso.';
+        alertDiv.innerHTML = '✅ LIMPEZA CONCLUÍDA! Todos os dados foram removidos. O sistema está pronto para uso.';
 
-        // Atualizar interfaces
         window.updateDashboard();
         window.renderCompras();
         window.renderManutHistorico();
@@ -3525,7 +3516,7 @@
       const lista = window.compras || [];
       const tbody = document.getElementById('tbody-compras');
       if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div>NonNull</tr>`; return; }
-      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span></td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span><td>`).join('');
+      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span><table><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></td>`).join('');
     };
 
     window.abrirModalEditarCompra = (id) => {
@@ -3664,36 +3655,36 @@
 
       if (lista.length === 0) { alert('Nenhuma compra para exportar.'); return; }
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      doc.setFillColor(11, 15, 26); doc.rect(0, 0, 297, 25, 'F');
-      doc.setTextColor(245, 158, 11); doc.setFontSize(20); doc.text('CONTROLE DE OPERACOES', 14, 13);
-      doc.setFontSize(10); doc.setTextColor(148, 163, 184); doc.text('Relatório de Compras por Período', 14, 20);
+      const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      docp.setFillColor(11, 15, 26); docp.rect(0, 0, 297, 25, 'F');
+      docp.setTextColor(245, 158, 11); docp.setFontSize(20); docp.text('CONTROLE DE OPERACOES', 14, 13);
+      docp.setFontSize(10); docp.setTextColor(148, 163, 184); docp.text('Relatório de Compras por Período', 14, 20);
       const totalPeriodo = lista.reduce((s, c) => s + c.valor, 0);
-      doc.setFontSize(11); doc.setTextColor(255, 255, 255);
-      doc.text(`Período: ${de || 'início'} a ${ate || 'hoje'}`, 14, 32);
-      doc.text(`Total: R$ ${totalPeriodo.toFixed(2)} | Compras: ${lista.length}`, 14, 40);
+      docp.setFontSize(11); docp.setTextColor(255, 255, 255);
+      docp.text(`Período: ${de || 'início'} a ${ate || 'hoje'}`, 14, 32);
+      docp.text(`Total: R$ ${totalPeriodo.toFixed(2)} | Compras: ${lista.length}`, 14, 40);
       const cols = ['Data', 'Fornecedor', 'Categoria', 'Descrição', 'Valor', 'Pagamento', 'NF', 'Responsável'];
       const colW = [25, 35, 30, 45, 20, 25, 30, 30];
       let x = 14, y = 52;
-      doc.setFillColor(17, 24, 39); doc.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F');
-      doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold');
-      cols.forEach((c, i) => { doc.text(c, x + 2, y); x += colW[i]; });
-      y += 6; doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      docp.setFillColor(17, 24, 39); docp.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F');
+      docp.setFontSize(8); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold');
+      cols.forEach((c, i) => { docp.text(c, x + 2, y); x += colW[i]; });
+      y += 6; docp.setFont('helvetica', 'normal'); docp.setFontSize(8);
       lista.forEach((comp, idx) => {
-        if (y > 185) { doc.addPage(); y = 20; doc.setFillColor(17, 24, 39); doc.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F'); doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { doc.text(c, xh + 2, y); xh += colW[i]; }); y += 6; doc.setFont('helvetica', 'normal'); }
-        if (idx % 2 === 0) { doc.setFillColor(26, 34, 53); doc.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 6, 'F'); }
-        doc.setTextColor(220, 220, 220);
-        doc.text(comp.dataCompraStr || '—', 14 + 2, y);
-        doc.text(comp.fornecedor.substring(0, 18), 14 + colW[0] + 2, y);
-        doc.text(comp.categoria, 14 + colW[0] + colW[1] + 2, y);
-        doc.text(comp.descricao.substring(0, 35), 14 + colW[0] + colW[1] + colW[2] + 2, y);
-        doc.text(`R$ ${comp.valor.toFixed(2)}`, 14 + colW[0] + colW[1] + colW[2] + colW[3] + 2, y);
-        doc.text(comp.pagamento, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 2, y);
-        doc.text((comp.nf || '—').substring(0, 20), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + 2, y);
-        doc.text((comp.responsavel || '—').substring(0, 20), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + colW[6] + 2, y);
+        if (y > 185) { docp.addPage(); y = 20; docp.setFillColor(17, 24, 39); docp.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F'); docp.setFontSize(8); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { docp.text(c, xh + 2, y); xh += colW[i]; }); y += 6; docp.setFont('helvetica', 'normal'); }
+        if (idx % 2 === 0) { docp.setFillColor(26, 34, 53); docp.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 6, 'F'); }
+        docp.setTextColor(220, 220, 220);
+        docp.text(comp.dataCompraStr || '—', 14 + 2, y);
+        docp.text(comp.fornecedor.substring(0, 18), 14 + colW[0] + 2, y);
+        docp.text(comp.categoria, 14 + colW[0] + colW[1] + 2, y);
+        docp.text(comp.descricao.substring(0, 35), 14 + colW[0] + colW[1] + colW[2] + 2, y);
+        docp.text(`R$ ${comp.valor.toFixed(2)}`, 14 + colW[0] + colW[1] + colW[2] + colW[3] + 2, y);
+        docp.text(comp.pagamento, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 2, y);
+        docp.text((comp.nf || '—').substring(0, 20), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + 2, y);
+        docp.text((comp.responsavel || '—').substring(0, 20), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + colW[6] + 2, y);
         y += 7;
       });
-      doc.save(`relatorio_compras_${de || 'inicio'}_a_${ate || 'hoje'}.pdf`);
+      docp.save(`relatorio_compras_${de || 'inicio'}_a_${ate || 'hoje'}.pdf`);
     };
 
     // Exportar Relatório Compras para Excel
@@ -3737,28 +3728,104 @@
     };
 
     let _relatorioAtual = [];
+    
+    // Função para calcular intervalos por veículo (KM e Tempo)
+    function calcularIntervalosPorVeiculo(eventos) {
+      // Agrupar eventos por veículo
+      const eventosPorVeiculo = {};
+      
+      eventos.forEach(evento => {
+        if (!eventosPorVeiculo[evento.veiculo]) {
+          eventosPorVeiculo[evento.veiculo] = [];
+        }
+        eventosPorVeiculo[evento.veiculo].push(evento);
+      });
+      
+      // Para cada veículo, ordenar cronologicamente e calcular intervalos
+      Object.keys(eventosPorVeiculo).forEach(veiculo => {
+        const eventosVeic = eventosPorVeiculo[veiculo];
+        // Ordenar por data (mais antigo primeiro para calcular diferenças)
+        eventosVeic.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
+        
+        let ultimoKm = null;
+        let ultimoData = null;
+        
+        eventosVeic.forEach(evento => {
+          // Calcular intervalo KM
+          if (evento.medicao !== null && evento.medicao !== undefined && evento.tipo === 'km') {
+            if (ultimoKm !== null) {
+              const diffKm = evento.medicao - ultimoKm;
+              evento.intervaloKm = diffKm > 0 ? diffKm.toFixed(1) + ' km' : (diffKm === 0 ? '0 km' : '—');
+            } else {
+              evento.intervaloKm = '—';
+            }
+            ultimoKm = evento.medicao;
+          } else if (evento.tipo === 'horimetro' && evento.medicao !== null) {
+            if (ultimoKm !== null) {
+              const diff = evento.medicao - ultimoKm;
+              evento.intervaloKm = diff > 0 ? diff.toFixed(1) + ' h' : (diff === 0 ? '0 h' : '—');
+            } else {
+              evento.intervaloKm = '—';
+            }
+            ultimoKm = evento.medicao;
+          } else {
+            evento.intervaloKm = '—';
+          }
+          
+          // Calcular intervalo de tempo
+          if (ultimoData !== null) {
+            const diffMs = new Date(evento.isoDate) - new Date(ultimoData);
+            const diffHoras = diffMs / (1000 * 60 * 60);
+            if (diffHoras < 24) {
+              evento.intervaloTempo = diffHoras.toFixed(1) + ' h';
+            } else {
+              const diffDias = diffHoras / 24;
+              evento.intervaloTempo = diffDias.toFixed(1) + ' d';
+            }
+          } else {
+            evento.intervaloTempo = '—';
+          }
+          ultimoData = evento.isoDate;
+        });
+      });
+      
+      return eventos;
+    }
+
     window.gerarRelatorio = () => {
       window._relatorioGerado = true;
       const de = document.getElementById('rel-de').value;
       const ate = document.getElementById('rel-ate').value;
       const equip = document.getElementById('rel-equip').value;
       const opFiltro = document.getElementById('rel-operador').value.trim().toLowerCase();
+      
       let abastFilt = window.abastecimentos || [];
-      if (de) abastFilt = abastFilt.filter(a => new Date(a.isoDate) >= new Date(de + 'T00:00:00'));
-      if (ate) abastFilt = abastFilt.filter(a => new Date(a.isoDate) <= new Date(ate + 'T23:59:59'));
-      if (equip) abastFilt = abastFilt.filter(a => a.equipOrig === equip || a.equip === equip);
-      if (opFiltro) abastFilt = abastFilt.filter(a => (a.operador || '').toLowerCase().includes(opFiltro));
-      _relatorioAtual = abastFilt;
       let entradasFilt = window.entradas || [];
-      if (de) entradasFilt = entradasFilt.filter(e => new Date(e.isoDate) >= new Date(de + 'T00:00:00'));
-      if (ate) entradasFilt = entradasFilt.filter(e => new Date(e.isoDate) <= new Date(ate + 'T23:59:59'));
+      
+      if (de) {
+        abastFilt = abastFilt.filter(a => new Date(a.isoDate) >= new Date(de + 'T00:00:00'));
+        entradasFilt = entradasFilt.filter(e => new Date(e.isoDate) >= new Date(de + 'T00:00:00'));
+      }
+      if (ate) {
+        abastFilt = abastFilt.filter(a => new Date(a.isoDate) <= new Date(ate + 'T23:59:59'));
+        entradasFilt = entradasFilt.filter(e => new Date(e.isoDate) <= new Date(ate + 'T23:59:59'));
+      }
+      if (equip) {
+        abastFilt = abastFilt.filter(a => a.equipOrig === equip || a.equip === equip);
+      }
+      if (opFiltro) {
+        abastFilt = abastFilt.filter(a => (a.operador || '').toLowerCase().includes(opFiltro));
+      }
+      
       const entradas = entradasFilt.filter(e => e.tipo === 'Entrada');
       const correcoes = entradasFilt.filter(e => e.tipo === 'Correção');
+      
       const totalAbastL = abastFilt.reduce((s, a) => s + a.litros, 0);
       const mediaAbast = abastFilt.length > 0 ? totalAbastL / abastFilt.length : 0;
       const totalEntradaL = entradas.reduce((s, e) => s + e.litros, 0);
       const totalEntradaR = entradas.reduce((s, e) => s + (e.valor || 0), 0);
       const totalCorrecaoDelta = correcoes.reduce((s, c) => s + c.litros, 0);
+      
       document.getElementById('rel-total-abast').textContent = totalAbastL.toFixed(1) + ' L';
       document.getElementById('rel-qtd-abast').textContent = abastFilt.length + ' registros';
       document.getElementById('rel-total-entrada').textContent = totalEntradaL.toFixed(1) + ' L';
@@ -3767,6 +3834,7 @@
       document.getElementById('rel-delta-correcao').textContent = (totalCorrecaoDelta >= 0 ? '+' : '') + totalCorrecaoDelta.toFixed(1) + ' L ajuste líquido';
       document.getElementById('rel-media').textContent = mediaAbast.toFixed(1) + ' L';
       document.getElementById('rel-estoque-atual').textContent = 'Estoque atual: ' + (window.estoqueAtual || 0).toFixed(1) + ' L';
+      
       const equipMap = {};
       abastFilt.forEach(a => { if (!equipMap[a.equip]) equipMap[a.equip] = 0; equipMap[a.equip] += a.litros; });
       const equipSorted = Object.entries(equipMap).sort((a, b) => b[1] - a[1]);
@@ -3774,31 +3842,204 @@
       const barsEl = document.getElementById('rel-equip-bars');
       if (equipSorted.length === 0) { barsEl.innerHTML = '<p style="color:var(--text3);">Nenhum dado.</p>'; document.getElementById('rel-equip-chart-card').style.display = 'none'; }
       else { document.getElementById('rel-equip-chart-card').style.display = 'block'; barsEl.innerHTML = equipSorted.map(([nome, total]) => `<div class="equip-bar-row"><span class="equip-bar-label">${nome}</span><div class="equip-bar-track"><div class="equip-bar-fill" style="width:${(total / maxVal * 100).toFixed(1)}%"></div></div><span class="equip-bar-val">${total.toFixed(1)} L</span></div>`).join(''); }
-      const todosEventos = [...abastFilt.map(a => ({ dt: a.dt, isoDate: a.isoDate, tipo: 'Abastecimento', delta: -a.litros, equip: a.equip, desc: a.operador || '', estoqueApos: null })), ...entradas.map(e => ({ dt: e.dt, isoDate: e.isoDate, tipo: 'Entrada', delta: e.litros, equip: '', desc: e.fornecedor || '', estoqueApos: e.estoqueApos })), ...correcoes.map(c => ({ dt: c.dt, isoDate: c.isoDate, tipo: 'Correção', delta: c.litros, equip: '', desc: c.obs || '', estoqueApos: c.estoqueApos })),].sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate)).slice(0, 40);
-      const fluxoEl = document.getElementById('rel-fluxo');
-      if (todosEventos.length === 0) fluxoEl.innerHTML = '<p style="color:var(--text3);">Nenhum evento.</p>';
-      else fluxoEl.innerHTML = todosEventos.map(ev => { const isPos = ev.delta > 0; const deltaStr = (isPos ? '+' : '') + ev.delta.toFixed(1) + ' L'; const saldoStr = ev.estoqueApos !== null && ev.estoqueApos !== undefined ? 'Saldo: ' + ev.estoqueApos.toFixed(1) + ' L' : ''; let tipoEmoji = ev.tipo === 'Abastecimento' ? '⛽' : (ev.tipo === 'Entrada' ? '🛢️' : '⚖️'); return `<div class="saldo-row"><span class="saldo-dt">${ev.dt}</span><span class="saldo-tipo"><span class="badge ${ev.tipo === 'Abastecimento' ? 'tipo-abast' : (ev.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-correcao')}">${tipoEmoji} ${ev.tipo}</span></span><span class="saldo-delta ${isPos ? 'pos' : 'neg'}">${deltaStr}</span><span class="saldo-after">${saldoStr}</span><span class="saldo-desc">${ev.equip ? ev.equip + (ev.desc ? ' · ' + ev.desc : '') : ev.desc}</span></div>`; }).join('');
+      
+      // CRIAR EVENTOS UNIFICADOS (Abastecimentos + Entradas + Correções)
+      const eventosUnificados = [];
+      
+      // Adicionar abastecimentos
+      abastFilt.forEach(a => {
+        eventosUnificados.push({
+          id: a.id,
+          dt: a.dt,
+          isoDate: a.isoDate,
+          tipo: 'Abastecimento',
+          tipoIcon: '⛽',
+          veiculo: a.equip,
+          operadorFornecedor: a.operador || '',
+          litros: -a.litros,
+          medicao: a.medicao,
+          tipoMedicao: a.tipo,
+          obs: a.obs || '',
+          intervaloKm: null,
+          intervaloTempo: null,
+          isAbast: true,
+          original: a
+        });
+      });
+      
+      // Adicionar entradas
+      entradas.forEach(e => {
+        eventosUnificados.push({
+          id: e.id,
+          dt: e.dt,
+          isoDate: e.isoDate,
+          tipo: 'Entrada',
+          tipoIcon: '🛢️',
+          veiculo: '',
+          operadorFornecedor: e.fornecedor || '',
+          litros: e.litros,
+          medicao: null,
+          tipoMedicao: null,
+          obs: e.obs || '',
+          intervaloKm: null,
+          intervaloTempo: null,
+          isAbast: false,
+          original: e
+        });
+      });
+      
+      // Adicionar correções
+      correcoes.forEach(c => {
+        eventosUnificados.push({
+          id: c.id,
+          dt: c.dt,
+          isoDate: c.isoDate,
+          tipo: 'Correção',
+          tipoIcon: '⚖️',
+          veiculo: '',
+          operadorFornecedor: '',
+          litros: c.litros,
+          medicao: null,
+          tipoMedicao: null,
+          obs: c.obs || '',
+          intervaloKm: null,
+          intervaloTempo: null,
+          isAbast: false,
+          original: c
+        });
+      });
+      
+      // Ordenar eventos por data (mais antigo primeiro para cálculo correto)
+      eventosUnificados.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
+      
+      // Calcular intervalos por veículo (apenas para abastecimentos que têm medição KM)
+      const abastComKm = eventosUnificados.filter(e => e.tipo === 'Abastecimento' && e.tipoMedicao === 'km' && e.medicao !== null);
+      const veiculosComKm = {};
+      abastComKm.forEach(e => {
+        if (!veiculosComKm[e.veiculo]) veiculosComKm[e.veiculo] = [];
+        veiculosComKm[e.veiculo].push(e);
+      });
+      
+      Object.keys(veiculosComKm).forEach(veiculo => {
+        const eventosVeic = veiculosComKm[veiculo];
+        eventosVeic.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
+        let ultimoKm = null;
+        eventosVeic.forEach(evento => {
+          if (ultimoKm !== null) {
+            const diff = evento.medicao - ultimoKm;
+            evento.intervaloKm = diff > 0 ? diff.toFixed(1) + ' km' : (diff === 0 ? '0 km' : '—');
+          } else {
+            evento.intervaloKm = '—';
+          }
+          ultimoKm = evento.medicao;
+        });
+      });
+      
+      // Calcular intervalos de tempo entre eventos consecutivos do MESMO VEÍCULO
+      const eventosPorVeiculo = {};
+      eventosUnificados.forEach(e => {
+        if (e.veiculo) {
+          if (!eventosPorVeiculo[e.veiculo]) eventosPorVeiculo[e.veiculo] = [];
+          eventosPorVeiculo[e.veiculo].push(e);
+        }
+      });
+      
+      Object.keys(eventosPorVeiculo).forEach(veiculo => {
+        const evs = eventosPorVeiculo[veiculo];
+        evs.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
+        let ultimaData = null;
+        evs.forEach(ev => {
+          if (ultimaData !== null) {
+            const diffMs = new Date(ev.isoDate) - new Date(ultimaData);
+            const diffHoras = diffMs / (1000 * 60 * 60);
+            if (diffHoras < 24) {
+              ev.intervaloTempo = diffHoras.toFixed(1) + ' h';
+            } else {
+              const diffDias = diffHoras / 24;
+              ev.intervaloTempo = diffDias.toFixed(1) + ' d';
+            }
+          } else {
+            ev.intervaloTempo = '—';
+          }
+          ultimaData = ev.isoDate;
+        });
+      });
+      
+      // Ordenar para exibição (mais recente primeiro)
+      eventosUnificados.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
+      _relatorioAtual = eventosUnificados;
+      
       const tbody = document.getElementById('tbody-report');
-      if (abastFilt.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum abastecimento encontrado.</p></div>NonNull</tr>`;
+      if (eventosUnificados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum registro encontrado.</p></div>NonNull</td>`;
       } else {
-        tbody.innerHTML = abastFilt.map(a => `<tr><td style="white-space:nowrap;">${a.dt}</span></td><td style="white-space:nowrap;">${window.badgeEquip(a.equip, a.equipOrig)}</span></td><td style="white-space:nowrap;">${a.operador || '—'}</span></td><td style="color:var(--accent);font-weight:500;">${a.litros.toFixed(1)} L</span></td><td style="white-space:nowrap;">${a.medicao !== null && a.tipo !== 'nenhum' ? (a.medicao.toFixed(1) + ' ' + (a.tipo === 'km' ? 'km' : 'h')) : '—'}</span></td><td style="white-space:nowrap;">${a.intervalo}</span></td><td class="text-wrap">${a.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarAbast('${a.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirAbast('${a.id}')" title="Excluir">🗑</button></span></tr>`).join('');
+        tbody.innerHTML = eventosUnificados.map(ev => {
+          const litrosDisplay = ev.tipo === 'Abastecimento' ? `-${Math.abs(ev.litros).toFixed(1)} L` : `+${ev.litros.toFixed(1)} L`;
+          const litrosColor = ev.tipo === 'Abastecimento' ? 'var(--accent)' : 'var(--green)';
+          const medicaoDisplay = (ev.medicao !== null && ev.tipoMedicao && ev.tipoMedicao !== 'nenhum') ? ev.medicao.toFixed(1) + ' ' + (ev.tipoMedicao === 'km' ? 'km' : 'h') : '—';
+          const tipoBadge = ev.tipo === 'Abastecimento' ? 'tipo-abast' : (ev.tipo === 'Entrada' ? 'tipo-entrada' : 'tipo-correcao');
+          const veiculoDisplay = ev.veiculo || '—';
+          
+          return `<tr>
+            <td style="white-space:nowrap;">${ev.dt}</td>
+            <td style="white-space:nowrap;">${veiculoDisplay !== '—' ? window.badgeEquip(veiculoDisplay, veiculoDisplay) : '—'}</td>
+            <td style="white-space:nowrap;"><span class="badge ${tipoBadge}">${ev.tipoIcon} ${ev.tipo}</span></td>
+            <td style="white-space:nowrap;">${ev.operadorFornecedor || '—'}</td>
+            <td style="color:${litrosColor};font-weight:500;">${litrosDisplay}</td>
+            <td style="white-space:nowrap;">${medicaoDisplay}</td>
+            <td style="white-space:nowrap;">${ev.intervaloKm || '—'}</td>
+            <td style="white-space:nowrap;">${ev.intervaloTempo || '—'}</td>
+            <td class="text-wrap">${ev.obs || '—'}</td>
+            <td style="white-space:nowrap;">
+              ${ev.tipo === 'Abastecimento' ? `<button class="btn-edit" onclick="window.abrirModalEditarAbast('${ev.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirAbast('${ev.id}')" title="Excluir">🗑</button>` : 
+                (ev.tipo === 'Entrada' ? `<button class="btn-del" onclick="window.excluirEntrada('${ev.id}')" title="Excluir">🗑</button>` :
+                `<button class="btn-del" onclick="window.excluirCorrecao('${ev.id}')" title="Excluir">🗑</button>`)}
+            </td>
+           </tr>`;
+        }).join('');
       }
       document.getElementById('rel-analytics').style.display = 'block';
     };
+    
+    // Funções para excluir entrada e correção
+    window.excluirEntrada = async (id) => {
+      if (!confirm('Excluir esta entrada de combustível? O estoque será ajustado.')) return;
+      const entrada = window.entradas.find(e => e.id === id);
+      if (entrada && entrada.tipo === 'Entrada') {
+        const novoEstoque = window.estoqueAtual - entrada.litros;
+        await setDoc(estoqueDoc, { valor: Math.max(0, novoEstoque) });
+      }
+      await deleteDoc(doc(db, "entradas", id));
+      window.showAlert('entrada-alert', 'success', '✔ Entrada excluída!');
+      window.gerarRelatorio();
+    };
+    
+    window.excluirCorrecao = async (id) => {
+      if (!confirm('Excluir esta correção de estoque? O estoque será revertido.')) return;
+      const correcao = window.entradas.find(e => e.id === id);
+      if (correcao && correcao.tipo === 'Correção') {
+        const novoEstoque = window.estoqueAtual - correcao.litros;
+        await setDoc(estoqueDoc, { valor: Math.max(0, novoEstoque) });
+      }
+      await deleteDoc(doc(db, "entradas", id));
+      window.showAlert('entrada-alert', 'success', '✔ Correção excluída!');
+      window.gerarRelatorio();
+    };
 
-    // Exportar Relatório Abastecimento para Excel
+    // Exportar Relatório Abastecimento para Excel (atualizado)
     window.exportarRelatorioExcel = () => {
       if (_relatorioAtual.length === 0) { alert('Gere o relatório primeiro.'); return; }
 
-      const dados = _relatorioAtual.map(a => ({
-        'Data/Hora': a.dt,
-        'Veículo': a.equip,
-        'Operador': a.operador || '—',
-        'Litros': a.litros,
-        'Horímetro/KM': (a.medicao !== null && a.tipo !== 'nenhum') ? a.medicao.toFixed(1) + ' ' + (a.tipo === 'km' ? 'km' : 'h') : '—',
-        'Intervalo': a.intervalo,
-        'Observação': a.obs || '—'
+      const dados = _relatorioAtual.map(ev => ({
+        'Data/Hora': ev.dt,
+        'Veículo': ev.veiculo || '—',
+        'Tipo': ev.tipo,
+        'Operador/Fornecedor': ev.operadorFornecedor || '—',
+        'Litros': ev.tipo === 'Abastecimento' ? `-${Math.abs(ev.litros)}` : `+${ev.litros}`,
+        'Horímetro/KM': (ev.medicao !== null && ev.tipoMedicao && ev.tipoMedicao !== 'nenhum') ? ev.medicao.toFixed(1) + ' ' + (ev.tipoMedicao === 'km' ? 'km' : 'h') : '—',
+        'Intervalo KM': ev.intervaloKm || '—',
+        'Intervalo Tempo': ev.intervaloTempo || '—',
+        'Observação': ev.obs || '—'
       }));
 
       const ws = XLSX.utils.json_to_sheet(dados);
@@ -3821,7 +4062,6 @@
       document.getElementById('edit-abast-medicao').value = abast.medicao || '';
       document.getElementById('edit-abast-tipo').value = abast.tipo || 'nenhum';
       document.getElementById('edit-abast-obs').value = abast.obs || '';
-      // Formatar data para datetime-local
       const dataObj = new Date(abast.isoDate);
       const year = dataObj.getFullYear();
       const month = String(dataObj.getMonth() + 1).padStart(2, '0');
@@ -3847,18 +4087,14 @@
 
       const novaData = new Date(datetimeStr);
       const abastRef = doc(db, "abastecimentos", id);
-
-      // Buscar o abastecimento original para ajustar o estoque
       const abastOriginal = window.abastecimentos.find(a => a.id === id);
 
-      // Calcular novo intervalo
       let intervalo = '—';
       if (tipo !== 'nenhum' && medicao !== null) {
         const ant = window.abastecimentos.filter(a => a.equip === equip && a.tipo === tipo && a.medicao !== null && a.id !== id).sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
         if (ant.length > 0) { const diff = medicao - ant[0].medicao; intervalo = diff > 0 ? (diff.toFixed(1) + (tipo === 'km' ? ' km' : ' h')) : '—'; }
       }
 
-      // Ajustar estoque: remover o valor antigo e adicionar o novo
       const diferencaEstoque = abastOriginal.litros - litros;
       const novoEstoque = window.estoqueAtual + diferencaEstoque;
 
@@ -4036,32 +4272,32 @@
       if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
       if (lista.length === 0) { alert('Nenhuma OS para exportar.'); return; }
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      doc.setFillColor(11, 15, 26); doc.rect(0, 0, 297, 25, 'F');
-      doc.setTextColor(139, 92, 246); doc.setFontSize(20); doc.text('CONTROLE DE OPERACOES', 14, 13);
-      doc.setFontSize(10); doc.setTextColor(148, 163, 184); doc.text('Relatorio de Ordens de Servico', 14, 20);
+      const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      docp.setFillColor(11, 15, 26); docp.rect(0, 0, 297, 25, 'F');
+      docp.setTextColor(139, 92, 246); docp.setFontSize(20); docp.text('CONTROLE DE OPERACOES', 14, 13);
+      docp.setFontSize(10); docp.setTextColor(148, 163, 184); docp.text('Relatorio de Ordens de Servico', 14, 20);
       const cols = ['Data', 'Nome', 'Tipo Manut', 'Tipo Item', 'Prioridade', 'Status', 'Responsavel', 'Custo'];
       const colW = [30, 35, 30, 25, 20, 22, 35, 28];
       let x = 14, y = 40;
-      doc.setFillColor(17, 24, 39); doc.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F');
-      doc.setFontSize(9); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold');
-      cols.forEach((c, i) => { doc.text(c, x + 2, y); x += colW[i]; });
-      y += 6; doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      docp.setFillColor(17, 24, 39); docp.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F');
+      docp.setFontSize(9); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold');
+      cols.forEach((c, i) => { docp.text(c, x + 2, y); x += colW[i]; });
+      y += 6; docp.setFont('helvetica', 'normal'); docp.setFontSize(9);
       lista.forEach((os, idx) => {
-        if (y > 185) { doc.addPage(); y = 20; doc.setFillColor(17, 24, 39); doc.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F'); doc.setFontSize(9); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { doc.text(c, xh + 2, y); xh += colW[i]; }); y += 6; doc.setFont('helvetica', 'normal'); }
-        if (idx % 2 === 0) { doc.setFillColor(26, 34, 53); doc.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 6, 'F'); }
-        doc.setTextColor(220, 220, 220);
-        doc.text(os.dt || '—', 14 + 2, y);
-        doc.text(os.nome.substring(0, 18), 14 + colW[0] + 2, y);
-        doc.text(os.tipoManut, 14 + colW[0] + colW[1] + 2, y);
-        doc.text(os.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento', 14 + colW[0] + colW[1] + colW[2] + 2, y);
-        doc.text(os.prioridade, 14 + colW[0] + colW[1] + colW[2] + colW[3] + 2, y);
-        doc.text(os.status, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 2, y);
-        doc.text((os.responsavel || '—').substring(0, 18), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + 2, y);
-        doc.text(`R$ ${(os.custoReal !== null ? os.custoReal : (os.custoEstimado || 0)).toFixed(2)}`, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + colW[6] + 2, y);
+        if (y > 185) { docp.addPage(); y = 20; docp.setFillColor(17, 24, 39); docp.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F'); docp.setFontSize(9); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { docp.text(c, xh + 2, y); xh += colW[i]; }); y += 6; docp.setFont('helvetica', 'normal'); }
+        if (idx % 2 === 0) { docp.setFillColor(26, 34, 53); docp.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 6, 'F'); }
+        docp.setTextColor(220, 220, 220);
+        docp.text(os.dt || '—', 14 + 2, y);
+        docp.text(os.nome.substring(0, 18), 14 + colW[0] + 2, y);
+        docp.text(os.tipoManut, 14 + colW[0] + colW[1] + 2, y);
+        docp.text(os.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento', 14 + colW[0] + colW[1] + colW[2] + 2, y);
+        docp.text(os.prioridade, 14 + colW[0] + colW[1] + colW[2] + colW[3] + 2, y);
+        docp.text(os.status, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 2, y);
+        docp.text((os.responsavel || '—').substring(0, 18), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + 2, y);
+        docp.text(`R$ ${(os.custoReal !== null ? os.custoReal : (os.custoEstimado || 0)).toFixed(2)}`, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + colW[6] + 2, y);
         y += 7;
       });
-      doc.save(`relatorio_os_${window.formatDT(new Date()).replace(/[/:]/g, '-')}.pdf`);
+      docp.save(`relatorio_os_${window.formatDT(new Date()).replace(/[/:]/g, '-')}.pdf`);
     };
 
     window.updateStockBadge = () => { const s = window.estoqueAtual || 0; const el = document.getElementById('stock-badge'); el.textContent = '⛽ ' + s.toFixed(1) + ' L'; el.className = 'stock-badge' + (s < 200 ? ' low' : ''); };
@@ -4070,47 +4306,50 @@
     window.salvarPDF = () => {
       if (_relatorioAtual.length === 0) { alert('Gere o relatório primeiro.'); return; }
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const de = document.getElementById('rel-de').value;
       const ate = document.getElementById('rel-ate').value;
       const equipF = document.getElementById('rel-equip').value || 'Todos';
       const opF = document.getElementById('rel-operador').value.trim() || 'Todos';
       const geradoEm = window.formatDT(new Date());
-      doc.setFillColor(11, 15, 26); doc.rect(0, 0, 297, 30, 'F');
-      doc.setTextColor(245, 158, 11); doc.setFontSize(20); doc.text('CONTROLE DE OPERACOES', 14, 13);
-      doc.setFontSize(10); doc.setTextColor(148, 163, 184); doc.text('Relatorio Analitico de Abastecimento', 14, 20);
-      doc.setTextColor(200, 200, 200); doc.text('Gerado em: ' + geradoEm, 297 - 14, 20, { align: 'right' });
-      doc.setFillColor(26, 34, 53); doc.rect(0, 30, 297, 16, 'F');
-      doc.setFontSize(9); doc.setTextColor(180, 180, 180);
-      doc.text('Periodo: ' + ((de || '—') + ' ate ' + (ate || '—')), 14, 38);
-      doc.text('Veículo: ' + equipF, 110, 38);
-      doc.text('Operador: ' + opF, 200, 38);
-      const totalL = _relatorioAtual.reduce((s, a) => s + a.litros, 0);
-      const med = _relatorioAtual.length > 0 ? totalL / _relatorioAtual.length : 0;
-      doc.setFillColor(31, 45, 66); doc.rect(0, 46, 297, 14, 'F');
-      doc.setFontSize(9); doc.setTextColor(245, 158, 11);
-      doc.text('Registros: ' + _relatorioAtual.length, 14, 54);
-      doc.text('Total: ' + totalL.toFixed(1) + ' L', 80, 54);
-      doc.text('Media: ' + med.toFixed(1) + ' L', 160, 54);
-      const cols = ['Data / Hora', 'Veículo', 'Operador', 'Litros', 'Horimetro/KM', 'Intervalo', 'Observacao'];
-      const colW = [38, 36, 34, 20, 30, 25, 42];
+      docp.setFillColor(11, 15, 26); docp.rect(0, 0, 297, 30, 'F');
+      docp.setTextColor(245, 158, 11); docp.setFontSize(20); docp.text('CONTROLE DE OPERACOES', 14, 13);
+      docp.setFontSize(10); docp.setTextColor(148, 163, 184); docp.text('Relatorio Analitico de Abastecimento', 14, 20);
+      docp.setTextColor(200, 200, 200); docp.text('Gerado em: ' + geradoEm, 297 - 14, 20, { align: 'right' });
+      docp.setFillColor(26, 34, 53); docp.rect(0, 30, 297, 16, 'F');
+      docp.setFontSize(9); docp.setTextColor(180, 180, 180);
+      docp.text('Periodo: ' + ((de || '—') + ' ate ' + (ate || '—')), 14, 38);
+      docp.text('Veículo: ' + equipF, 110, 38);
+      docp.text('Operador: ' + opF, 200, 38);
+      const totalL = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').reduce((s, ev) => s + Math.abs(ev.litros), 0);
+      const med = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').length;
+      const mediaVal = med > 0 ? totalL / med : 0;
+      docp.setFillColor(31, 45, 66); docp.rect(0, 46, 297, 14, 'F');
+      docp.setFontSize(9); docp.setTextColor(245, 158, 11);
+      const qtdAbast = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').length;
+      docp.text('Registros: ' + qtdAbast, 14, 54);
+      docp.text('Total: ' + totalL.toFixed(1) + ' L', 80, 54);
+      docp.text('Media: ' + mediaVal.toFixed(1) + ' L', 160, 54);
+      const cols = ['Data', 'Veículo', 'Tipo', 'Operador/Fornecedor', 'Litros', 'Hor/KM', 'Int. KM', 'Int. Tempo', 'Obs'];
+      const colW = [30, 32, 22, 32, 18, 22, 22, 22, 40];
       let x = 14, y = 68;
-      doc.setFillColor(17, 24, 39); doc.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 8, 'F');
-      doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold');
-      cols.forEach((c, i) => { doc.text(c, x + 2, y); x += colW[i]; });
-      y += 6; doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-      _relatorioAtual.forEach((a, ri) => {
-        if (y > 185) { doc.addPage(); y = 20; doc.setFillColor(17, 24, 39); doc.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 8, 'F'); doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { doc.text(c, xh + 2, y); xh += colW[i]; }); y += 6; doc.setFont('helvetica', 'normal'); }
-        if (ri % 2 === 0) doc.setFillColor(26, 34, 53), doc.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 7, 'F');
-        const mT = a.medicao !== null && a.tipo !== 'nenhum' ? a.medicao.toFixed(1) + ' ' + (a.tipo === 'km' ? 'km' : 'h') : '—';
-        const row = [a.dt, a.equip, a.operador || '—', a.litros.toFixed(1) + ' L', mT, a.intervalo, (a.obs || '—').substring(0, 40)];
-        x = 14; doc.setTextColor(220, 220, 220);
-        row.forEach(val => { doc.text(String(val), x + 2, y); x += colW[row.indexOf(val)]; });
+      docp.setFillColor(17, 24, 39); docp.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 8, 'F');
+      docp.setFontSize(7); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold');
+      cols.forEach((c, i) => { docp.text(c, x + 2, y); x += colW[i]; });
+      y += 6; docp.setFont('helvetica', 'normal'); docp.setFontSize(7);
+      _relatorioAtual.forEach((ev, ri) => {
+        if (y > 185) { docp.addPage(); y = 20; docp.setFillColor(17, 24, 39); docp.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 8, 'F'); docp.setFontSize(7); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { docp.text(c, xh + 2, y); xh += colW[i]; }); y += 6; docp.setFont('helvetica', 'normal'); }
+        if (ri % 2 === 0) docp.setFillColor(26, 34, 53), docp.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 7, 'F');
+        const medDisplay = (ev.medicao !== null && ev.tipoMedicao && ev.tipoMedicao !== 'nenhum') ? ev.medicao.toFixed(1) + ' ' + (ev.tipoMedicao === 'km' ? 'km' : 'h') : '—';
+        const litrosDisplay = ev.tipo === 'Abastecimento' ? `-${Math.abs(ev.litros).toFixed(1)}` : `+${ev.litros.toFixed(1)}`;
+        const row = [ev.dt, ev.veiculo || '—', ev.tipo, ev.operadorFornecedor || '—', litrosDisplay, medDisplay, ev.intervaloKm || '—', ev.intervaloTempo || '—', (ev.obs || '—').substring(0, 30)];
+        x = 14; docp.setTextColor(220, 220, 220);
+        row.forEach(val => { docp.text(String(val), x + 2, y); x += colW[row.indexOf(val)]; });
         y += 7;
       });
-      const tp = doc.internal.getNumberOfPages();
-      for (let p = 1; p <= tp; p++) { doc.setPage(p); doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.text('Controle de Operacoes', 14, 205); doc.text('Pagina ' + p + ' / ' + tp, 297 - 14, 205, { align: 'right' }); }
-      doc.save('relatorio_analitico_' + (de || 'inicio') + '_a_' + (ate || 'hoje') + '.pdf');
+      const tp = docp.internal.getNumberOfPages();
+      for (let p = 1; p <= tp; p++) { docp.setPage(p); docp.setFontSize(8); docp.setTextColor(100, 116, 139); docp.text('Controle de Operacoes', 14, 205); docp.text('Pagina ' + p + ' / ' + tp, 297 - 14, 205, { align: 'right' }); }
+      docp.save('relatorio_analitico_' + (de || 'inicio') + '_a_' + (ate || 'hoje') + '.pdf');
     };
 
     window.parseDTString = (s) => { if (!s) return null; const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/); if (!m) return null; return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]); };
@@ -4133,7 +4372,7 @@
     window.excluirVeiculo = async (nome) => { if (!confirm(`Tem certeza que deseja excluir o veículo "${nome}"? Todos os abastecimentos e OS vinculados a ele serão perdidos.`)) return; let veiculos = [...(window.veiculosList || [])]; veiculos = veiculos.filter(e => e !== nome); await setDoc(veiculosDoc, { lista: veiculos }); const abastSnapshot = await getDocs(collection(db, "abastecimentos")); for (const docSnap of abastSnapshot.docs) { const data = docSnap.data(); if (data.equip === nome || data.equipOrig === nome) await deleteDoc(doc(db, "abastecimentos", docSnap.id)); } const manutSnapshot = await getDocs(collection(db, "manutencoes")); for (const docSnap of manutSnapshot.docs) { const data = docSnap.data(); if (data.tipoItem === 'veiculo' && data.nome === nome) await deleteDoc(doc(db, "manutencoes", docSnap.id)); } window.showAlert('veic-alert', 'success', '✔ Veículo excluído e registros vinculados removidos.'); };
 
     window.atualizarSelectsEquipamentos = () => { const equipamentos = window.equipamentosList || []; const select = document.getElementById('manut-equipamento'); if (!select) return; const currentValue = select.value; let placeholder = select.querySelector('option[value=""]'); select.innerHTML = ''; if (placeholder) select.appendChild(placeholder); else { const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Selecione...'; select.appendChild(opt); } equipamentos.forEach(eq => { const option = document.createElement('option'); option.value = eq; option.textContent = eq; select.appendChild(option); }); if (currentValue && equipamentos.includes(currentValue)) select.value = currentValue; else select.value = ''; };
-    window.renderEquipamentos = () => { const equipamentos = window.equipamentosList || []; const tbody = document.getElementById('tbody-equipamentos'); if (!tbody) return; if (equipamentos.length === 0) { tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Nenhum equipamento cadastrado.</p></div>NonNull<tr>`; return; } tbody.innerHTML = equipamentos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarEquipamento('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEquipamento('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></span></tr>`).join(''); };
+    window.renderEquipamentos = () => { const equipamentos = window.equipamentosList || []; const tbody = document.getElementById('tbody-equipamentos'); if (!tbody) return; if (equipamentos.length === 0) { tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Nenhum equipamento cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = equipamentos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarEquipamento('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEquipamento('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></span></tr>`).join(''); };
     window.acrescentarEquipamento = async () => { const nome = document.getElementById('novo-equipamento-nome').value.trim(); if (!nome) { window.showAlert('equip-alert', 'error', '⚠ Digite o nome do equipamento.'); return; } const equipamentos = window.equipamentosList || []; if (equipamentos.includes(nome)) { window.showAlert('equip-alert', 'error', '⚠ Equipamento já cadastrado.'); return; } equipamentos.push(nome); await setDoc(equipamentosDoc, { lista: equipamentos }); document.getElementById('novo-equipamento-nome').value = ''; window.showAlert('equip-alert', 'success', '✔ Equipamento adicionado com sucesso!'); };
     window.abrirModalEditarEquipamento = (nomeAtual) => { document.getElementById('modal-equip-id').value = nomeAtual; document.getElementById('modal-equip-nome').value = nomeAtual; document.getElementById('modal-editar-equipamento').classList.add('show'); };
     window.closeModalEquipamento = () => { document.getElementById('modal-editar-equipamento').classList.remove('show'); };
