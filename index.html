@@ -2228,7 +2228,7 @@
           </div>
         </div>
 
-        <!-- RELATÓRIO ANALÍTICO UNIFICADO (CORRIGIDO) -->
+        <!-- RELATÓRIO ANALÍTICO UNIFICADO -->
         <div class="section" id="section-relatorio">
           <div class="form-card">
             <h3>🔎 Filtrar período</h3>
@@ -2278,7 +2278,7 @@
               <h3>🏗️ Consumo por Veículo</h3>
               <div id="rel-equip-bars"></div>
             </div>
-            <!-- Seção "Fluxo de Estoque no Período" REMOVIDA conforme solicitado -->
+            <!-- Seção Fluxo de Estoque no Período REMOVIDA -->
             <div id="report-table-wrap">
               <div class="form-card" style="padding:0;overflow:hidden;">
                 <div style="padding:14px 16px 0;border-bottom:1px solid var(--border);margin-bottom:0;">
@@ -2566,7 +2566,7 @@
             </div>
           </div>
           <div class="table-wrap">
-            <table>
+            </table>
               <thead>
                 <tr>
                   <th>Data</th>
@@ -3260,7 +3260,8 @@
         equipContainer.innerHTML = equipSorted.map(([nome, total]) => `<div class="list-item"><div class="list-item-info"><div class="list-item-name">${nome}</div></div><div class="list-item-value abastecimento">${total.toFixed(1)} L</div></div>`).join('');
       }
 
-      const ultimosAbast = abast.slice(0, 5);
+      // ALTERAÇÃO AQUI: Últimos Abastecimentos agora mostra APENAS 3 registros
+      const ultimosAbast = abast.slice(0, 3);
       const abastContainer = document.getElementById('dash-ultimos-abast');
       if (ultimosAbast.length === 0) {
         abastContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Nenhum abastecimento registrado</p></div>';
@@ -3516,7 +3517,7 @@
       const lista = window.compras || [];
       const tbody = document.getElementById('tbody-compras');
       if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div>NonNull</tr>`; return; }
-      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span><table><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></td>`).join('');
+      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span></td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></tr>`).join('');
     };
 
     window.abrirModalEditarCompra = (id) => {
@@ -3630,9 +3631,9 @@
       document.getElementById('relatorio-qtd-periodo').textContent = lista.length;
       const tbody = document.getElementById('tbody-relatorio-compras');
       if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div>NonNull</tr>`;
+        tbody.innerHTML = `<td><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div>NonNull</tr>`;
       } else {
-        tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:180px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></tr>`).join('');
+        tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:180px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span><tr><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></tr>`).join('');
       }
       document.getElementById('relatorio-compra-resultado').style.display = 'block';
     };
@@ -3971,7 +3972,7 @@
       
       const tbody = document.getElementById('tbody-report');
       if (eventosUnificados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum registro encontrado.</p></div>NonNull</td>`;
+        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum registro encontrado.</p></div>NonNull</tr>`;
       } else {
         tbody.innerHTML = eventosUnificados.map(ev => {
           const litrosDisplay = ev.tipo === 'Abastecimento' ? `-${Math.abs(ev.litros).toFixed(1)} L` : `+${ev.litros.toFixed(1)} L`;
@@ -3981,20 +3982,20 @@
           const veiculoDisplay = ev.veiculo || '—';
           
           return `<tr>
-            <td style="white-space:nowrap;">${ev.dt}</td>
-            <td style="white-space:nowrap;">${veiculoDisplay !== '—' ? window.badgeEquip(veiculoDisplay, veiculoDisplay) : '—'}</td>
-            <td style="white-space:nowrap;"><span class="badge ${tipoBadge}">${ev.tipoIcon} ${ev.tipo}</span></td>
-            <td style="white-space:nowrap;">${ev.operadorFornecedor || '—'}</td>
-            <td style="color:${litrosColor};font-weight:500;">${litrosDisplay}</td>
-            <td style="white-space:nowrap;">${medicaoDisplay}</td>
-            <td style="white-space:nowrap;">${ev.intervaloKm || '—'}</td>
-            <td style="white-space:nowrap;">${ev.intervaloTempo || '—'}</td>
-            <td class="text-wrap">${ev.obs || '—'}</td>
+            <td style="white-space:nowrap;">${ev.dt}</span>
+            <td style="white-space:nowrap;">${veiculoDisplay !== '—' ? window.badgeEquip(veiculoDisplay, veiculoDisplay) : '—'}</span>
+            <td style="white-space:nowrap;"><span class="badge ${tipoBadge}">${ev.tipoIcon} ${ev.tipo}</span></span>
+            <td style="white-space:nowrap;">${ev.operadorFornecedor || '—'}</span>
+            <td style="color:${litrosColor};font-weight:500;">${litrosDisplay}</span>
+            <td style="white-space:nowrap;">${medicaoDisplay}</span>
+            <td style="white-space:nowrap;">${ev.intervaloKm || '—'}</span>
+            <td style="white-space:nowrap;">${ev.intervaloTempo || '—'}</span>
+            <td class="text-wrap">${ev.obs || '—'}</span>
             <td style="white-space:nowrap;">
               ${ev.tipo === 'Abastecimento' ? `<button class="btn-edit" onclick="window.abrirModalEditarAbast('${ev.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirAbast('${ev.id}')" title="Excluir">🗑</button>` : 
                 (ev.tipo === 'Entrada' ? `<button class="btn-del" onclick="window.excluirEntrada('${ev.id}')" title="Excluir">🗑</button>` :
                 `<button class="btn-del" onclick="window.excluirCorrecao('${ev.id}')" title="Excluir">🗑</button>`)}
-            </td>
+             </span>
            </tr>`;
         }).join('');
       }
