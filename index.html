@@ -2546,7 +2546,7 @@
           </div>
         </div>
 
-        <!-- MANUTENÇÃO — ORDENS DE SERVIÇO -->
+        <!-- MANUTENÇÃO — ORDENS DE SERVIÇO (CORRIGIDO) -->
         <div class="section" id="section-manut-historico">
           <div class="manut-filter-row">
             <input type="text" id="manut-filtro-equip" placeholder="Filtrar por veículo ou equipamento..."
@@ -2561,28 +2561,33 @@
                 <option value="Cancelada">Cancelada</option>
               </select>
               <button class="btn-secondary" onclick="renderManutHistorico()">🔎</button>
+              <button class="btn-secondary" onclick="forcarRecarregamentoOS()" title="Forçar Recarregamento">🔄 Recarregar</button>
               <button class="btn-secondary" onclick="salvarOSPDF()" title="Exportar OS para PDF">📄 PDF</button>
               <button class="btn-excel" onclick="exportarOSExcel()" title="Exportar OS para Excel">📊 Excel</button>
             </div>
           </div>
           <div class="table-wrap">
-            </table>
+            <table>
               <thead>
                 <tr>
                   <th>Data</th>
                   <th>Nome</th>
-                  <th>Tipo</th>
+                  <th>Tipo Manut</th>
                   <th>Tipo Item</th>
                   <th>Prior.</th>
                   <th>Status</th>
                   <th>Resp.</th>
-                  <th>Custo</th>
+                  <th>Custo (R$)</th>
                   <th>Descrição</th>
                   <th>Ações</th>
                 </tr>
               </thead>
               <tbody id="tbody-manut"></tbody>
             </table>
+          </div>
+          <!-- Indicador de carregamento -->
+          <div id="os-loading" style="display:none; text-align:center; padding:20px; color:var(--text3);">
+            ⏳ Carregando ordens de serviço...
           </div>
         </div>
 
@@ -2870,6 +2875,25 @@
       </div>
     </div>
 
+    <!-- NOVO MODAL: EDITAR EVENTO (ENTRADA / CORREÇÃO) -->
+    <div id="modal-edit-evento" class="modal-bg center" onclick="if(event.target===this)closeModalEditEvento()">
+      <div class="modal-sheet center-modal" style="max-width:700px;">
+        <div class="modal-header"><span>✏️ Editar Entrada / Correção</span><button class="modal-close"
+            onclick="closeModalEditEvento()">×</button></div>
+        <input type="hidden" id="edit-evento-id">
+        <input type="hidden" id="edit-evento-tipo">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group"><label>Data/Hora *</label><input type="datetime-local" id="edit-evento-datetime"></div>
+          <div class="form-group"><label>Fornecedor (Entradas) / Obs (Correção)</label><input type="text" id="edit-evento-fornecedor" placeholder="Fornecedor ou motivo"></div>
+          <div class="form-group"><label>Litros *</label><input type="number" id="edit-evento-litros" step="0.1"></div>
+          <div class="form-group"><label>Valor Total (R$) - Somente Entrada</label><input type="number" id="edit-evento-valor" step="0.01"></div>
+          <div class="form-group full" style="grid-column:span 2;"><label>Observação</label><textarea id="edit-evento-obs" rows="2"></textarea></div>
+        </div>
+        <div class="modal-actions"><button onclick="salvarEdicaoEvento()" class="btn-submit">💾 Salvar</button><button
+            onclick="closeModalEditEvento()" class="btn-secondary">Cancelar</button></div>
+      </div>
+    </div>
+
   </div>
 
   <script type="module">
@@ -3015,10 +3039,20 @@
         if (window.currentSection === 'relatorio' && window._relatorioGerado) window.gerarRelatorio();
       });
 
+      // SNAPSHOT CORRIGIDO PARA MANUTENÇÕES - COM LOG DE DEBUG
       onSnapshot(query(manutCollection, orderBy("isoDate", "desc")), (snapshot) => {
+        console.log("📢 [DEBUG] Snapshot manutencoes recebido. Total documentos:", snapshot.docs.length);
+        snapshot.docs.forEach(doc => {
+          console.log("  - OS:", doc.id, doc.data().nome, doc.data().status);
+        });
         window.manutencoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("📢 [DEBUG] window.manutencoes atualizado, total:", window.manutencoes.length);
+        
         if (window.currentSection === 'dashboard') window.updateDashboard();
-        if (window.currentSection === 'manut-historico') window.renderManutHistorico();
+        if (window.currentSection === 'manut-historico') {
+          console.log("📢 [DEBUG] Renderizando manut-historico...");
+          window.renderManutHistorico();
+        }
         if (window.currentSection === 'manut-dashboard') window.renderManutDashboard();
       });
 
@@ -3110,6 +3144,33 @@
       }, 10000);
       window.updateDashboard();
       window.renderCompras();
+      // Força uma verificação inicial das OS
+      setTimeout(() => {
+        if (window.manutencoes && window.manutencoes.length > 0) {
+          console.log("📢 [DEBUG] initApp - OS carregadas:", window.manutencoes.length);
+          window.renderManutHistorico();
+        }
+      }, 1000);
+    };
+
+    // Função para forçar recarregamento das OS
+    window.forcarRecarregamentoOS = () => {
+      console.log("📢 [DEBUG] Forçando recarregamento das OS...");
+      const loadingEl = document.getElementById('os-loading');
+      if (loadingEl) loadingEl.style.display = 'block';
+      
+      // Força uma nova consulta ao Firestore
+      getDocs(query(manutCollection, orderBy("isoDate", "desc"))).then((snapshot) => {
+        window.manutencoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("📢 [DEBUG] Recarregamento concluído. Total OS:", window.manutencoes.length);
+        window.renderManutHistorico();
+        if (loadingEl) loadingEl.style.display = 'none';
+        window.showAlert('manut-alert', 'success', '✅ Ordens de serviço recarregadas com sucesso!');
+      }).catch(err => {
+        console.error("Erro ao recarregar OS:", err);
+        if (loadingEl) loadingEl.style.display = 'none';
+        window.showAlert('manut-alert', 'error', '❌ Erro ao recarregar OS.');
+      });
     };
 
     window.updateDateTime = (id) => {
@@ -3162,7 +3223,10 @@
       }
       if (id === 'abastecimento') window.updateDateTime('abast-datetime');
       if (id === 'manut-registro') window.updateDateTime('manut-datetime');
-      if (id === 'manut-historico') window.renderManutHistorico();
+      if (id === 'manut-historico') {
+        console.log("📢 [DEBUG] Exibindo manut-historico, OS disponíveis:", window.manutencoes ? window.manutencoes.length : 0);
+        window.renderManutHistorico();
+      }
       if (id === 'manut-dashboard') window.renderManutDashboard();
       if (id === 'veiculos') window.renderVeiculos();
       if (id === 'equipamentos') window.renderEquipamentos();
@@ -3205,9 +3269,13 @@
 
     window.showAlert = (id, type, msg) => {
       const el = document.getElementById(id);
+      if (!el) {
+        console.warn("Alert element not found:", id);
+        return;
+      }
       el.className = 'alert show ' + type;
       el.innerHTML = msg;
-      setTimeout(() => { el.className = 'alert'; }, 5000);
+      setTimeout(() => { if (el) el.className = 'alert'; }, 5000);
     };
 
     window.updateDashboard = async () => {
@@ -3260,7 +3328,6 @@
         equipContainer.innerHTML = equipSorted.map(([nome, total]) => `<div class="list-item"><div class="list-item-info"><div class="list-item-name">${nome}</div></div><div class="list-item-value abastecimento">${total.toFixed(1)} L</div></div>`).join('');
       }
 
-      // ALTERAÇÃO AQUI: Últimos Abastecimentos agora mostra APENAS 3 registros
       const ultimosAbast = abast.slice(0, 3);
       const abastContainer = document.getElementById('dash-ultimos-abast');
       if (ultimosAbast.length === 0) {
@@ -3732,9 +3799,7 @@
     
     // Função para calcular intervalos por veículo (KM e Tempo)
     function calcularIntervalosPorVeiculo(eventos) {
-      // Agrupar eventos por veículo
       const eventosPorVeiculo = {};
-      
       eventos.forEach(evento => {
         if (!eventosPorVeiculo[evento.veiculo]) {
           eventosPorVeiculo[evento.veiculo] = [];
@@ -3742,17 +3807,14 @@
         eventosPorVeiculo[evento.veiculo].push(evento);
       });
       
-      // Para cada veículo, ordenar cronologicamente e calcular intervalos
       Object.keys(eventosPorVeiculo).forEach(veiculo => {
         const eventosVeic = eventosPorVeiculo[veiculo];
-        // Ordenar por data (mais antigo primeiro para calcular diferenças)
         eventosVeic.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
         
         let ultimoKm = null;
         let ultimoData = null;
         
         eventosVeic.forEach(evento => {
-          // Calcular intervalo KM
           if (evento.medicao !== null && evento.medicao !== undefined && evento.tipo === 'km') {
             if (ultimoKm !== null) {
               const diffKm = evento.medicao - ultimoKm;
@@ -3773,7 +3835,6 @@
             evento.intervaloKm = '—';
           }
           
-          // Calcular intervalo de tempo
           if (ultimoData !== null) {
             const diffMs = new Date(evento.isoDate) - new Date(ultimoData);
             const diffHoras = diffMs / (1000 * 60 * 60);
@@ -3789,7 +3850,6 @@
           ultimoData = evento.isoDate;
         });
       });
-      
       return eventos;
     }
 
@@ -3844,10 +3904,8 @@
       if (equipSorted.length === 0) { barsEl.innerHTML = '<p style="color:var(--text3);">Nenhum dado.</p>'; document.getElementById('rel-equip-chart-card').style.display = 'none'; }
       else { document.getElementById('rel-equip-chart-card').style.display = 'block'; barsEl.innerHTML = equipSorted.map(([nome, total]) => `<div class="equip-bar-row"><span class="equip-bar-label">${nome}</span><div class="equip-bar-track"><div class="equip-bar-fill" style="width:${(total / maxVal * 100).toFixed(1)}%"></div></div><span class="equip-bar-val">${total.toFixed(1)} L</span></div>`).join(''); }
       
-      // CRIAR EVENTOS UNIFICADOS (Abastecimentos + Entradas + Correções)
       const eventosUnificados = [];
       
-      // Adicionar abastecimentos
       abastFilt.forEach(a => {
         eventosUnificados.push({
           id: a.id,
@@ -3868,7 +3926,6 @@
         });
       });
       
-      // Adicionar entradas
       entradas.forEach(e => {
         eventosUnificados.push({
           id: e.id,
@@ -3889,7 +3946,6 @@
         });
       });
       
-      // Adicionar correções
       correcoes.forEach(c => {
         eventosUnificados.push({
           id: c.id,
@@ -3910,10 +3966,8 @@
         });
       });
       
-      // Ordenar eventos por data (mais antigo primeiro para cálculo correto)
       eventosUnificados.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
       
-      // Calcular intervalos por veículo (apenas para abastecimentos que têm medição KM)
       const abastComKm = eventosUnificados.filter(e => e.tipo === 'Abastecimento' && e.tipoMedicao === 'km' && e.medicao !== null);
       const veiculosComKm = {};
       abastComKm.forEach(e => {
@@ -3936,7 +3990,6 @@
         });
       });
       
-      // Calcular intervalos de tempo entre eventos consecutivos do MESMO VEÍCULO
       const eventosPorVeiculo = {};
       eventosUnificados.forEach(e => {
         if (e.veiculo) {
@@ -3966,7 +4019,6 @@
         });
       });
       
-      // Ordenar para exibição (mais recente primeiro)
       eventosUnificados.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
       _relatorioAtual = eventosUnificados;
       
@@ -3993,8 +4045,8 @@
             <td class="text-wrap">${ev.obs || '—'}</span>
             <td style="white-space:nowrap;">
               ${ev.tipo === 'Abastecimento' ? `<button class="btn-edit" onclick="window.abrirModalEditarAbast('${ev.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirAbast('${ev.id}')" title="Excluir">🗑</button>` : 
-                (ev.tipo === 'Entrada' ? `<button class="btn-del" onclick="window.excluirEntrada('${ev.id}')" title="Excluir">🗑</button>` :
-                `<button class="btn-del" onclick="window.excluirCorrecao('${ev.id}')" title="Excluir">🗑</button>`)}
+                (ev.tipo === 'Entrada' ? `<button class="btn-edit" onclick="window.abrirModalEditarEvento('${ev.id}', 'Entrada')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEntrada('${ev.id}')" title="Excluir">🗑</button>` :
+                `<button class="btn-edit" onclick="window.abrirModalEditarEvento('${ev.id}', 'Correção')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCorrecao('${ev.id}')" title="Excluir">🗑</button>`)}
              </span>
            </tr>`;
         }).join('');
@@ -4002,7 +4054,6 @@
       document.getElementById('rel-analytics').style.display = 'block';
     };
     
-    // Funções para excluir entrada e correção
     window.excluirEntrada = async (id) => {
       if (!confirm('Excluir esta entrada de combustível? O estoque será ajustado.')) return;
       const entrada = window.entradas.find(e => e.id === id);
@@ -4027,7 +4078,92 @@
       window.gerarRelatorio();
     };
 
-    // Exportar Relatório Abastecimento para Excel (atualizado)
+    window.abrirModalEditarEvento = (id, tipo) => {
+      const evento = window.entradas.find(e => e.id === id);
+      if (!evento) return;
+      document.getElementById('edit-evento-id').value = evento.id;
+      document.getElementById('edit-evento-tipo').value = tipo;
+      
+      const dataObj = new Date(evento.isoDate);
+      const year = dataObj.getFullYear();
+      const month = String(dataObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dataObj.getDate()).padStart(2, '0');
+      const hours = String(dataObj.getHours()).padStart(2, '0');
+      const minutes = String(dataObj.getMinutes()).padStart(2, '0');
+      document.getElementById('edit-evento-datetime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+      
+      document.getElementById('edit-evento-litros').value = evento.litros;
+      document.getElementById('edit-evento-obs').value = evento.obs || '';
+      
+      if (tipo === 'Entrada') {
+        document.getElementById('edit-evento-fornecedor').value = evento.fornecedor || '';
+        document.getElementById('edit-evento-valor').value = evento.valor !== null ? evento.valor : '';
+        document.getElementById('edit-evento-valor').disabled = false;
+      } else {
+        document.getElementById('edit-evento-fornecedor').value = evento.obs || '';
+        document.getElementById('edit-evento-valor').value = '';
+        document.getElementById('edit-evento-valor').disabled = true;
+      }
+      
+      document.getElementById('modal-edit-evento').classList.add('show');
+    };
+
+    window.salvarEdicaoEvento = async () => {
+      const id = document.getElementById('edit-evento-id').value;
+      const tipo = document.getElementById('edit-evento-tipo').value;
+      const datetimeStr = document.getElementById('edit-evento-datetime').value;
+      const litrosNovo = parseFloat(document.getElementById('edit-evento-litros').value);
+      const fornecedor = document.getElementById('edit-evento-fornecedor').value.trim();
+      const valor = parseFloat(document.getElementById('edit-evento-valor').value);
+      const obs = document.getElementById('edit-evento-obs').value.trim();
+      
+      if (!datetimeStr) return window.showAlert('entrada-alert', 'error', '⚠ Data/hora inválida.');
+      if (isNaN(litrosNovo)) return window.showAlert('entrada-alert', 'error', '⚠ Litros inválido.');
+      
+      const novaData = new Date(datetimeStr);
+      const eventoRef = doc(db, "entradas", id);
+      const eventoOriginal = window.entradas.find(e => e.id === id);
+      
+      let novoEstoque = window.estoqueAtual;
+      if (tipo === 'Entrada') {
+        const diffLitros = litrosNovo - eventoOriginal.litros;
+        novoEstoque = window.estoqueAtual + diffLitros;
+      }
+      if (tipo === 'Correção') {
+        const diffLitros = litrosNovo - eventoOriginal.litros;
+        novoEstoque = window.estoqueAtual + diffLitros;
+      }
+      
+      const updates = {
+        isoDate: novaData.toISOString(),
+        dt: window.formatDT(novaData),
+        litros: litrosNovo,
+        obs: obs,
+        estoqueApos: novoEstoque
+      };
+      
+      if (tipo === 'Entrada') {
+        updates.fornecedor = fornecedor;
+        if (!isNaN(valor) && valor > 0) updates.valor = valor;
+        else updates.valor = null;
+      } else {
+        updates.fornecedor = '';
+        updates.valor = null;
+        updates.obs = fornecedor;
+      }
+      
+      await updateDoc(eventoRef, updates);
+      await setDoc(estoqueDoc, { valor: Math.max(0, novoEstoque) });
+      
+      window.closeModalEditEvento();
+      window.showAlert('entrada-alert', 'success', `✔ ${tipo} editada com sucesso!`);
+      window.gerarRelatorio();
+    };
+
+    window.closeModalEditEvento = () => {
+      document.getElementById('modal-edit-evento').classList.remove('show');
+    };
+
     window.exportarRelatorioExcel = () => {
       if (_relatorioAtual.length === 0) { alert('Gere o relatório primeiro.'); return; }
 
@@ -4052,7 +4188,6 @@
       XLSX.writeFile(wb, `relatorio_abastecimentos_${de}_a_${ate}.xlsx`);
     };
 
-    // Funções para editar/excluir abastecimento
     window.abrirModalEditarAbast = (id) => {
       const abast = window.abastecimentos.find(a => a.id === id);
       if (!abast) return;
@@ -4133,6 +4268,227 @@
 
     window.closeModalEditAbast = () => { document.getElementById('modal-edit-abast').classList.remove('show'); };
 
+    // FUNÇÃO RENDER MANUT HISTORICO CORRIGIDA
+    window.renderManutHistorico = () => {
+      console.log("📢 [DEBUG] renderManutHistorico chamada");
+      const tbody = document.getElementById('tbody-manut');
+      if (!tbody) {
+        console.error("Elemento tbody-manut não encontrado!");
+        return;
+      }
+      
+      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroStatus = document.getElementById('manut-filtro-status')?.value || '';
+      let lista = window.manutencoes || [];
+      
+      console.log("📢 [DEBUG] Total de OS na memória:", lista.length);
+      console.log("📢 [DEBUG] OS:", lista.map(os => `${os.nome} (${os.status})`));
+      
+      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
+      if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
+      
+      console.log("📢 [DEBUG] OS após filtros:", lista.length);
+      
+      if (lista.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div></td></tr>`;
+        return;
+      }
+      
+      tbody.innerHTML = lista.map(m => {
+        const custoDisplay = (m.custoReal !== null && m.custoReal !== undefined) ? m.custoReal : (m.custoEstimado || 0);
+        return `<tr>
+          <td style="white-space:nowrap;">${m.dt || '—'}</td>
+          <td style="white-space:nowrap;">${m.nome || '—'}</td>
+          <td style="white-space:nowrap;">${m.tipoManut || '—'}</td>
+          <td style="white-space:nowrap;"><span class="badge ${m.tipoItem === 'veiculo' ? 'cam' : 'out'}">${m.tipoItem === 'veiculo' ? '🚗 Veículo' : '⚙️ Equipamento'}</span></td>
+          <td style="white-space:nowrap;"><span class="badge ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}">${m.prioridade || 'Normal'}</span></td>
+          <td style="white-space:nowrap;"><span class="badge ${window.statusClass(m.status)}">${m.status || 'Aberta'}</span></td>
+          <td style="white-space:nowrap;">${m.responsavel || '—'}</td>
+          <td style="white-space:nowrap;">R$ ${custoDisplay.toFixed(2)}</td>
+          <td class="text-wrap" style="max-width:180px;">${(m.descricao || '').substring(0, 50)}${(m.descricao || '').length > 50 ? '...' : ''}</td>
+          <td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalStatus('${m.id}')" style="color:var(--blue2);" title="Alterar Status">📝</button><button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button></td>
+        </tr>`;
+      }).join('');
+      
+      console.log("📢 [DEBUG] renderManutHistorico concluído");
+    };
+
+    window.exportarOSExcel = () => {
+      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroStatus = document.getElementById('manut-filtro-status')?.value || '';
+      let lista = window.manutencoes || [];
+      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
+      if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
+
+      if (lista.length === 0) { alert('Nenhuma OS para exportar.'); return; }
+
+      const dados = lista.map(m => ({
+        'Data': m.dt || '—',
+        'Nome': m.nome || '—',
+        'Tipo Manutenção': m.tipoManut || '—',
+        'Tipo Item': m.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento',
+        'Prioridade': m.prioridade || 'Normal',
+        'Status': m.status || 'Aberta',
+        'Responsável': m.responsavel || '—',
+        'Custo (R$)': ((m.custoReal !== null && m.custoReal !== undefined) ? m.custoReal : (m.custoEstimado || 0)).toFixed(2),
+        'Descrição': m.descricao || '—',
+        'Peças/Materiais': m.pecas || '—',
+        'Observação Conclusão': m.obsConclusao || '—'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Ordens de Servico');
+      XLSX.writeFile(wb, `ordens_servico_${window.formatDT(new Date()).replace(/[/:]/g, '-')}.xlsx`);
+    };
+
+    window.delManut = async (id) => { 
+      if (confirm('Excluir esta OS?')) { 
+        await deleteDoc(doc(db, "manutencoes", id));
+        window.showAlert('manut-alert', 'success', '✔ OS excluída com sucesso!');
+      } 
+    };
+    
+    window.abrirModalStatus = (id) => { 
+      const os = window.manutencoes.find(m => m.id === id); 
+      if (!os) return; 
+      document.getElementById('modal-status-id').value = id; 
+      document.getElementById('modal-status-val').value = os.status || 'Aberta'; 
+      document.getElementById('modal-status-custo').value = (os.custoReal !== null && os.custoReal !== undefined) ? os.custoReal : (os.custoEstimado || ''); 
+      document.getElementById('modal-status-obs').value = os.obsConclusao || ''; 
+      document.getElementById('modal-status').classList.add('show'); 
+    };
+    
+    window.closeModalStatus = () => { document.getElementById('modal-status').classList.remove('show'); };
+    
+    window.salvarStatus = async () => { 
+      const id = document.getElementById('modal-status-id').value; 
+      const osRef = doc(db, "manutencoes", id); 
+      const updates = { status: document.getElementById('modal-status-val').value }; 
+      const custo = parseFloat(document.getElementById('modal-status-custo').value); 
+      if (!isNaN(custo)) updates.custoReal = custo; 
+      updates.obsConclusao = document.getElementById('modal-status-obs').value.trim(); 
+      await updateDoc(osRef, updates); 
+      window.closeModalStatus(); 
+      window.showAlert('manut-alert', 'success', '✔ Status da OS atualizado!'); 
+    };
+
+    window.renderManutDashboard = () => {
+      const manut = window.manutencoes || [];
+      const abertas = manut.filter(m => m.status === 'Aberta').length;
+      const andamento = manut.filter(m => m.status === 'Em andamento').length;
+      const concluidas = manut.filter(m => m.status === 'Concluída').length;
+      const urgentes = manut.filter(m => m.prioridade === 'Urgente' && (m.status === 'Aberta' || m.status === 'Em andamento')).length;
+      document.getElementById('md-abertas').textContent = abertas;
+      document.getElementById('md-andamento').textContent = andamento;
+      document.getElementById('md-concluidas').textContent = concluidas;
+      document.getElementById('md-urgentes').textContent = urgentes;
+      const board = document.getElementById('manut-board');
+      const statuses = ['Aberta', 'Em andamento', 'Concluída'];
+      board.innerHTML = statuses.map(s => `<div class="status-col"><div class="status-col-header ${window.statusClass(s)}">${s}</div><div class="status-col-body">${manut.filter(m => m.status === s).slice(0, 8).map(m => `<div class="manut-mini-card ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}"><div class="mc-equip">${m.nome} (${m.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento'})</div><div class="mc-tipo">${m.tipoManut} · ${(m.dt || '').slice(0, 10)}</div></div>`).join('') || '<div class="empty-state" style="padding:12px;"><p style="font-size:11px;">Nenhuma OS</p></div>'}</div></div>`).join('');
+      const custoTotalEstimado = manut.reduce((s, m) => s + (m.custoEstimado || 0), 0);
+      const custoTotalReal = manut.reduce((s, m) => s + (m.custoReal || 0), 0);
+      document.getElementById('manut-custos').innerHTML = `<div class="cards-grid"><div class="dash-card"><div class="card-label">💰 Custo Estimado Total</div><div class="card-value" style="font-size:24px;">R$ ${custoTotalEstimado.toFixed(2)}</div></div><div class="dash-card"><div class="card-label">✅ Custo Real Total</div><div class="card-value" style="font-size:24px;color:var(--green);">R$ ${custoTotalReal.toFixed(2)}</div></div></div>`;
+    };
+
+    window.statusClass = (s) => { const map = { 'Aberta': 'aberta', 'Em andamento': 'andamento', 'Concluída': 'concluida', 'Cancelada': 'cancelada' }; return map[s] || 'out'; };
+
+    window.salvarOSPDF = () => {
+      let lista = window.manutencoes || [];
+      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroStatus = document.getElementById('manut-filtro-status')?.value || '';
+      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
+      if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
+      if (lista.length === 0) { alert('Nenhuma OS para exportar.'); return; }
+      const { jsPDF } = window.jspdf;
+      const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      docp.setFillColor(11, 15, 26); docp.rect(0, 0, 297, 25, 'F');
+      docp.setTextColor(139, 92, 246); docp.setFontSize(20); docp.text('CONTROLE DE OPERACOES', 14, 13);
+      docp.setFontSize(10); docp.setTextColor(148, 163, 184); docp.text('Relatorio de Ordens de Servico', 14, 20);
+      const cols = ['Data', 'Nome', 'Tipo Manut', 'Tipo Item', 'Prioridade', 'Status', 'Responsavel', 'Custo'];
+      const colW = [30, 35, 30, 25, 20, 22, 35, 28];
+      let x = 14, y = 40;
+      docp.setFillColor(17, 24, 39); docp.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F');
+      docp.setFontSize(9); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold');
+      cols.forEach((c, i) => { docp.text(c, x + 2, y); x += colW[i]; });
+      y += 6; docp.setFont('helvetica', 'normal'); docp.setFontSize(9);
+      lista.forEach((os, idx) => {
+        if (y > 185) { docp.addPage(); y = 20; docp.setFillColor(17, 24, 39); docp.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F'); docp.setFontSize(9); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { docp.text(c, xh + 2, y); xh += colW[i]; }); y += 6; docp.setFont('helvetica', 'normal'); }
+        if (idx % 2 === 0) { docp.setFillColor(26, 34, 53); docp.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 6, 'F'); }
+        docp.setTextColor(220, 220, 220);
+        docp.text(os.dt || '—', 14 + 2, y);
+        docp.text((os.nome || '—').substring(0, 18), 14 + colW[0] + 2, y);
+        docp.text(os.tipoManut || '—', 14 + colW[0] + colW[1] + 2, y);
+        docp.text(os.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento', 14 + colW[0] + colW[1] + colW[2] + 2, y);
+        docp.text(os.prioridade || 'Normal', 14 + colW[0] + colW[1] + colW[2] + colW[3] + 2, y);
+        docp.text(os.status || 'Aberta', 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 2, y);
+        docp.text((os.responsavel || '—').substring(0, 18), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + 2, y);
+        const custoDisplay = (os.custoReal !== null && os.custoReal !== undefined) ? os.custoReal : (os.custoEstimado || 0);
+        docp.text(`R$ ${custoDisplay.toFixed(2)}`, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + colW[6] + 2, y);
+        y += 7;
+      });
+      docp.save(`relatorio_os_${window.formatDT(new Date()).replace(/[/:]/g, '-')}.pdf`);
+    };
+
+    window.updateStockBadge = () => { const s = window.estoqueAtual || 0; const el = document.getElementById('stock-badge'); el.textContent = '⛽ ' + s.toFixed(1) + ' L'; el.className = 'stock-badge' + (s < 200 ? ' low' : ''); };
+    window.badgeEquip = (nome, orig) => { const map = { 'Pá Carregadeira': 'pa', 'Pá Carregadeira 2': 'pa', 'Escavadeira': 'esc', 'Caminhão': 'cam', 'Outros': 'out' }; return `<span class="badge ${map[orig] || 'out'}">${nome}</span>`; };
+
+    window.salvarPDF = () => {
+      if (_relatorioAtual.length === 0) { alert('Gere o relatório primeiro.'); return; }
+      const { jsPDF } = window.jspdf;
+      const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const de = document.getElementById('rel-de').value;
+      const ate = document.getElementById('rel-ate').value;
+      const equipF = document.getElementById('rel-equip').value || 'Todos';
+      const opF = document.getElementById('rel-operador').value.trim() || 'Todos';
+      const geradoEm = window.formatDT(new Date());
+      docp.setFillColor(11, 15, 26); docp.rect(0, 0, 297, 30, 'F');
+      docp.setTextColor(245, 158, 11); docp.setFontSize(20); docp.text('CONTROLE DE OPERACOES', 14, 13);
+      docp.setFontSize(10); docp.setTextColor(148, 163, 184); docp.text('Relatorio Analitico de Abastecimento', 14, 20);
+      docp.setTextColor(200, 200, 200); docp.text('Gerado em: ' + geradoEm, 297 - 14, 20, { align: 'right' });
+      docp.setFillColor(26, 34, 53); docp.rect(0, 30, 297, 16, 'F');
+      docp.setFontSize(9); docp.setTextColor(180, 180, 180);
+      docp.text('Periodo: ' + ((de || '—') + ' ate ' + (ate || '—')), 14, 38);
+      docp.text('Veículo: ' + equipF, 110, 38);
+      docp.text('Operador: ' + opF, 200, 38);
+      const totalL = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').reduce((s, ev) => s + Math.abs(ev.litros), 0);
+      const med = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').length;
+      const mediaVal = med > 0 ? totalL / med : 0;
+      docp.setFillColor(31, 45, 66); docp.rect(0, 46, 297, 14, 'F');
+      docp.setFontSize(9); docp.setTextColor(245, 158, 11);
+      const qtdAbast = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').length;
+      docp.text('Registros: ' + qtdAbast, 14, 54);
+      docp.text('Total: ' + totalL.toFixed(1) + ' L', 80, 54);
+      docp.text('Media: ' + mediaVal.toFixed(1) + ' L', 160, 54);
+      const cols = ['Data', 'Veículo', 'Tipo', 'Operador/Fornecedor', 'Litros', 'Hor/KM', 'Int. KM', 'Int. Tempo', 'Obs'];
+      const colW = [30, 32, 22, 32, 18, 22, 22, 22, 40];
+      let x = 14, y = 68;
+      docp.setFillColor(17, 24, 39); docp.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 8, 'F');
+      docp.setFontSize(7); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold');
+      cols.forEach((c, i) => { docp.text(c, x + 2, y); x += colW[i]; });
+      y += 6; docp.setFont('helvetica', 'normal'); docp.setFontSize(7);
+      _relatorioAtual.forEach((ev, ri) => {
+        if (y > 185) { docp.addPage(); y = 20; docp.setFillColor(17, 24, 39); docp.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 8, 'F'); docp.setFontSize(7); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { docp.text(c, xh + 2, y); xh += colW[i]; }); y += 6; docp.setFont('helvetica', 'normal'); }
+        if (ri % 2 === 0) docp.setFillColor(26, 34, 53), docp.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 7, 'F');
+        const medDisplay = (ev.medicao !== null && ev.tipoMedicao && ev.tipoMedicao !== 'nenhum') ? ev.medicao.toFixed(1) + ' ' + (ev.tipoMedicao === 'km' ? 'km' : 'h') : '—';
+        const litrosDisplay = ev.tipo === 'Abastecimento' ? `-${Math.abs(ev.litros).toFixed(1)}` : `+${ev.litros.toFixed(1)}`;
+        const row = [ev.dt, ev.veiculo || '—', ev.tipo, ev.operadorFornecedor || '—', litrosDisplay, medDisplay, ev.intervaloKm || '—', ev.intervaloTempo || '—', (ev.obs || '—').substring(0, 30)];
+        x = 14; docp.setTextColor(220, 220, 220);
+        row.forEach(val => { docp.text(String(val), x + 2, y); x += colW[row.indexOf(val)]; });
+        y += 7;
+      });
+      const tp = docp.internal.getNumberOfPages();
+      for (let p = 1; p <= tp; p++) { docp.setPage(p); docp.setFontSize(8); docp.setTextColor(100, 116, 139); docp.text('Controle de Operacoes', 14, 205); docp.text('Pagina ' + p + ' / ' + tp, 297 - 14, 205, { align: 'right' }); }
+      docp.save('relatorio_analitico_' + (de || 'inicio') + '_a_' + (ate || 'hoje') + '.pdf');
+    };
+
+    window.parseDTString = (s) => { if (!s) return null; const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/); if (!m) return null; return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]); };
+    window.parseDateOnly = (s) => { if (!s) return null; const parts = s.split('/'); if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]); return null; };
+
+    window.editarDataHora = (target) => { const id = target + '-datetime'; const dtStr = document.getElementById(id).value; const d = window.parseDTString(dtStr) || new Date(); const yyyy = d.getFullYear(), mm = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0'); const hh = String(d.getHours()).padStart(2, '0'), mi = String(d.getMinutes()).padStart(2, '0'); document.getElementById('modal-dt-target').value = id; document.getElementById('modal-dt-record-id').value = ''; document.getElementById('modal-dt-date').value = `${yyyy}-${mm}-${dd}`; document.getElementById('modal-dt-time').value = `${hh}:${mi}`; document.getElementById('modal-dt').classList.add('show'); };
+    window.closeModalDT = () => { document.getElementById('modal-dt').classList.remove('show'); };
+    window.salvarModalDT = () => { const dateVal = document.getElementById('modal-dt-date').value; const timeVal = document.getElementById('modal-dt-time').value; if (!dateVal || !timeVal) return alert('Preencha data e hora.'); const nova = new Date(dateVal + 'T' + timeVal); const target = document.getElementById('modal-dt-target').value; document.getElementById(target).value = window.formatDT(nova); window.closeModalDT(); };
+
     window.salvarManutencao = async () => {
       const tipoItem = document.getElementById('manut-tipo-item').value;
       if (!tipoItem) return window.showAlert('manut-alert', 'error', '⚠ Selecione se é Veículo ou Equipamento.');
@@ -4198,167 +4554,6 @@
 
       window.showAlert('manut-alert', 'success', '✔ Ordem de serviço registrada com sucesso!');
     };
-
-    window.renderManutHistorico = () => {
-      const filtroEquip = (document.getElementById('manut-filtro-equip').value || '').toLowerCase();
-      const filtroStatus = document.getElementById('manut-filtro-status').value;
-      let lista = window.manutencoes || [];
-      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
-      if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
-      const tbody = document.getElementById('tbody-manut');
-      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`; return; }
-      tbody.innerHTML = lista.map(m => `<tr><td style="white-space:nowrap;">${m.dt}</span></td><td style="white-space:nowrap;">${m.nome}</span></td><td style="white-space:nowrap;">${m.tipoManut}</span></td><td style="white-space:nowrap;"><span class="badge ${m.tipoItem === 'veiculo' ? 'cam' : 'out'}">${m.tipoItem === 'veiculo' ? '🚗 Veículo' : '⚙️ Equipamento'}</span></span></td><td style="white-space:nowrap;"><span class="badge ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}">${m.prioridade}</span></span></td><td style="white-space:nowrap;"><span class="badge ${window.statusClass(m.status)}">${m.status}</span></span></td><td style="white-space:nowrap;">${m.responsavel || '—'}</span></td><td style="white-space:nowrap;">R$ ${(m.custoReal !== null ? m.custoReal : (m.custoEstimado || 0)).toFixed(2)}</span></td><td class="text-wrap" style="max-width:180px;">${m.descricao.substring(0, 50)}${m.descricao.length > 50 ? '...' : ''}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalStatus('${m.id}')" style="color:var(--blue2);" title="Alterar Status">📝</button><button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button></span></tr>`).join('');
-    };
-
-    // Exportar OS para Excel
-    window.exportarOSExcel = () => {
-      const filtroEquip = (document.getElementById('manut-filtro-equip').value || '').toLowerCase();
-      const filtroStatus = document.getElementById('manut-filtro-status').value;
-      let lista = window.manutencoes || [];
-      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
-      if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
-
-      if (lista.length === 0) { alert('Nenhuma OS para exportar.'); return; }
-
-      const dados = lista.map(m => ({
-        'Data': m.dt,
-        'Nome': m.nome,
-        'Tipo Manutenção': m.tipoManut,
-        'Tipo Item': m.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento',
-        'Prioridade': m.prioridade,
-        'Status': m.status,
-        'Responsável': m.responsavel || '—',
-        'Custo (R$)': (m.custoReal !== null ? m.custoReal : (m.custoEstimado || 0)).toFixed(2),
-        'Descrição': m.descricao,
-        'Peças/Materiais': m.pecas || '—',
-        'Observação Conclusão': m.obsConclusao || '—'
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(dados);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Ordens de Servico');
-      XLSX.writeFile(wb, `ordens_servico_${window.formatDT(new Date()).replace(/[/:]/g, '-')}.xlsx`);
-    };
-
-    window.delManut = async (id) => { if (confirm('Excluir esta OS?')) { await deleteDoc(doc(db, "manutencoes", id)); } };
-    window.abrirModalStatus = (id) => { const os = window.manutencoes.find(m => m.id === id); if (!os) return; document.getElementById('modal-status-id').value = id; document.getElementById('modal-status-val').value = os.status; document.getElementById('modal-status-custo').value = os.custoReal !== null ? os.custoReal : (os.custoEstimado || ''); document.getElementById('modal-status-obs').value = os.obsConclusao || ''; document.getElementById('modal-status').classList.add('show'); };
-    window.closeModalStatus = () => { document.getElementById('modal-status').classList.remove('show'); };
-    window.salvarStatus = async () => { const id = document.getElementById('modal-status-id').value; const osRef = doc(db, "manutencoes", id); const updates = { status: document.getElementById('modal-status-val').value }; const custo = parseFloat(document.getElementById('modal-status-custo').value); if (!isNaN(custo)) updates.custoReal = custo; updates.obsConclusao = document.getElementById('modal-status-obs').value.trim(); await updateDoc(osRef, updates); window.closeModalStatus(); window.showAlert('manut-alert', 'success', '✔ Status da OS atualizado!'); };
-
-    window.renderManutDashboard = () => {
-      const manut = window.manutencoes || [];
-      const abertas = manut.filter(m => m.status === 'Aberta').length;
-      const andamento = manut.filter(m => m.status === 'Em andamento').length;
-      const concluidas = manut.filter(m => m.status === 'Concluída').length;
-      const urgentes = manut.filter(m => m.prioridade === 'Urgente' && (m.status === 'Aberta' || m.status === 'Em andamento')).length;
-      document.getElementById('md-abertas').textContent = abertas;
-      document.getElementById('md-andamento').textContent = andamento;
-      document.getElementById('md-concluidas').textContent = concluidas;
-      document.getElementById('md-urgentes').textContent = urgentes;
-      const board = document.getElementById('manut-board');
-      const statuses = ['Aberta', 'Em andamento', 'Concluída'];
-      board.innerHTML = statuses.map(s => `<div class="status-col"><div class="status-col-header ${window.statusClass(s)}">${s}</div><div class="status-col-body">${manut.filter(m => m.status === s).slice(0, 8).map(m => `<div class="manut-mini-card ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}"><div class="mc-equip">${m.nome} (${m.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento'})</div><div class="mc-tipo">${m.tipoManut} · ${m.dt.slice(0, 10)}</div></div>`).join('') || '<div class="empty-state" style="padding:12px;"><p style="font-size:11px;">Nenhuma OS</p></div>'}</div></div>`).join('');
-      const custoTotalEstimado = manut.reduce((s, m) => s + (m.custoEstimado || 0), 0);
-      const custoTotalReal = manut.reduce((s, m) => s + (m.custoReal || 0), 0);
-      document.getElementById('manut-custos').innerHTML = `<div class="cards-grid"><div class="dash-card"><div class="card-label">💰 Custo Estimado Total</div><div class="card-value" style="font-size:24px;">R$ ${custoTotalEstimado.toFixed(2)}</div></div><div class="dash-card"><div class="card-label">✅ Custo Real Total</div><div class="card-value" style="font-size:24px;color:var(--green);">R$ ${custoTotalReal.toFixed(2)}</div></div></div>`;
-    };
-
-    window.statusClass = (s) => { const map = { 'Aberta': 'aberta', 'Em andamento': 'andamento', 'Concluída': 'concluida', 'Cancelada': 'cancelada' }; return map[s] || 'out'; };
-
-    window.salvarOSPDF = () => {
-      let lista = window.manutencoes || [];
-      const filtroEquip = (document.getElementById('manut-filtro-equip').value || '').toLowerCase();
-      const filtroStatus = document.getElementById('manut-filtro-status').value;
-      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
-      if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
-      if (lista.length === 0) { alert('Nenhuma OS para exportar.'); return; }
-      const { jsPDF } = window.jspdf;
-      const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      docp.setFillColor(11, 15, 26); docp.rect(0, 0, 297, 25, 'F');
-      docp.setTextColor(139, 92, 246); docp.setFontSize(20); docp.text('CONTROLE DE OPERACOES', 14, 13);
-      docp.setFontSize(10); docp.setTextColor(148, 163, 184); docp.text('Relatorio de Ordens de Servico', 14, 20);
-      const cols = ['Data', 'Nome', 'Tipo Manut', 'Tipo Item', 'Prioridade', 'Status', 'Responsavel', 'Custo'];
-      const colW = [30, 35, 30, 25, 20, 22, 35, 28];
-      let x = 14, y = 40;
-      docp.setFillColor(17, 24, 39); docp.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F');
-      docp.setFontSize(9); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold');
-      cols.forEach((c, i) => { docp.text(c, x + 2, y); x += colW[i]; });
-      y += 6; docp.setFont('helvetica', 'normal'); docp.setFontSize(9);
-      lista.forEach((os, idx) => {
-        if (y > 185) { docp.addPage(); y = 20; docp.setFillColor(17, 24, 39); docp.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F'); docp.setFontSize(9); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { docp.text(c, xh + 2, y); xh += colW[i]; }); y += 6; docp.setFont('helvetica', 'normal'); }
-        if (idx % 2 === 0) { docp.setFillColor(26, 34, 53); docp.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 6, 'F'); }
-        docp.setTextColor(220, 220, 220);
-        docp.text(os.dt || '—', 14 + 2, y);
-        docp.text(os.nome.substring(0, 18), 14 + colW[0] + 2, y);
-        docp.text(os.tipoManut, 14 + colW[0] + colW[1] + 2, y);
-        docp.text(os.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento', 14 + colW[0] + colW[1] + colW[2] + 2, y);
-        docp.text(os.prioridade, 14 + colW[0] + colW[1] + colW[2] + colW[3] + 2, y);
-        docp.text(os.status, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 2, y);
-        docp.text((os.responsavel || '—').substring(0, 18), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + 2, y);
-        docp.text(`R$ ${(os.custoReal !== null ? os.custoReal : (os.custoEstimado || 0)).toFixed(2)}`, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + colW[6] + 2, y);
-        y += 7;
-      });
-      docp.save(`relatorio_os_${window.formatDT(new Date()).replace(/[/:]/g, '-')}.pdf`);
-    };
-
-    window.updateStockBadge = () => { const s = window.estoqueAtual || 0; const el = document.getElementById('stock-badge'); el.textContent = '⛽ ' + s.toFixed(1) + ' L'; el.className = 'stock-badge' + (s < 200 ? ' low' : ''); };
-    window.badgeEquip = (nome, orig) => { const map = { 'Pá Carregadeira': 'pa', 'Pá Carregadeira 2': 'pa', 'Escavadeira': 'esc', 'Caminhão': 'cam', 'Outros': 'out' }; return `<span class="badge ${map[orig] || 'out'}">${nome}</span>`; };
-
-    window.salvarPDF = () => {
-      if (_relatorioAtual.length === 0) { alert('Gere o relatório primeiro.'); return; }
-      const { jsPDF } = window.jspdf;
-      const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const de = document.getElementById('rel-de').value;
-      const ate = document.getElementById('rel-ate').value;
-      const equipF = document.getElementById('rel-equip').value || 'Todos';
-      const opF = document.getElementById('rel-operador').value.trim() || 'Todos';
-      const geradoEm = window.formatDT(new Date());
-      docp.setFillColor(11, 15, 26); docp.rect(0, 0, 297, 30, 'F');
-      docp.setTextColor(245, 158, 11); docp.setFontSize(20); docp.text('CONTROLE DE OPERACOES', 14, 13);
-      docp.setFontSize(10); docp.setTextColor(148, 163, 184); docp.text('Relatorio Analitico de Abastecimento', 14, 20);
-      docp.setTextColor(200, 200, 200); docp.text('Gerado em: ' + geradoEm, 297 - 14, 20, { align: 'right' });
-      docp.setFillColor(26, 34, 53); docp.rect(0, 30, 297, 16, 'F');
-      docp.setFontSize(9); docp.setTextColor(180, 180, 180);
-      docp.text('Periodo: ' + ((de || '—') + ' ate ' + (ate || '—')), 14, 38);
-      docp.text('Veículo: ' + equipF, 110, 38);
-      docp.text('Operador: ' + opF, 200, 38);
-      const totalL = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').reduce((s, ev) => s + Math.abs(ev.litros), 0);
-      const med = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').length;
-      const mediaVal = med > 0 ? totalL / med : 0;
-      docp.setFillColor(31, 45, 66); docp.rect(0, 46, 297, 14, 'F');
-      docp.setFontSize(9); docp.setTextColor(245, 158, 11);
-      const qtdAbast = _relatorioAtual.filter(ev => ev.tipo === 'Abastecimento').length;
-      docp.text('Registros: ' + qtdAbast, 14, 54);
-      docp.text('Total: ' + totalL.toFixed(1) + ' L', 80, 54);
-      docp.text('Media: ' + mediaVal.toFixed(1) + ' L', 160, 54);
-      const cols = ['Data', 'Veículo', 'Tipo', 'Operador/Fornecedor', 'Litros', 'Hor/KM', 'Int. KM', 'Int. Tempo', 'Obs'];
-      const colW = [30, 32, 22, 32, 18, 22, 22, 22, 40];
-      let x = 14, y = 68;
-      docp.setFillColor(17, 24, 39); docp.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 8, 'F');
-      docp.setFontSize(7); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold');
-      cols.forEach((c, i) => { docp.text(c, x + 2, y); x += colW[i]; });
-      y += 6; docp.setFont('helvetica', 'normal'); docp.setFontSize(7);
-      _relatorioAtual.forEach((ev, ri) => {
-        if (y > 185) { docp.addPage(); y = 20; docp.setFillColor(17, 24, 39); docp.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 8, 'F'); docp.setFontSize(7); docp.setTextColor(100, 116, 139); docp.setFont('helvetica', 'bold'); let xh = 14; cols.forEach((c, i) => { docp.text(c, xh + 2, y); xh += colW[i]; }); y += 6; docp.setFont('helvetica', 'normal'); }
-        if (ri % 2 === 0) docp.setFillColor(26, 34, 53), docp.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 7, 'F');
-        const medDisplay = (ev.medicao !== null && ev.tipoMedicao && ev.tipoMedicao !== 'nenhum') ? ev.medicao.toFixed(1) + ' ' + (ev.tipoMedicao === 'km' ? 'km' : 'h') : '—';
-        const litrosDisplay = ev.tipo === 'Abastecimento' ? `-${Math.abs(ev.litros).toFixed(1)}` : `+${ev.litros.toFixed(1)}`;
-        const row = [ev.dt, ev.veiculo || '—', ev.tipo, ev.operadorFornecedor || '—', litrosDisplay, medDisplay, ev.intervaloKm || '—', ev.intervaloTempo || '—', (ev.obs || '—').substring(0, 30)];
-        x = 14; docp.setTextColor(220, 220, 220);
-        row.forEach(val => { docp.text(String(val), x + 2, y); x += colW[row.indexOf(val)]; });
-        y += 7;
-      });
-      const tp = docp.internal.getNumberOfPages();
-      for (let p = 1; p <= tp; p++) { docp.setPage(p); docp.setFontSize(8); docp.setTextColor(100, 116, 139); docp.text('Controle de Operacoes', 14, 205); docp.text('Pagina ' + p + ' / ' + tp, 297 - 14, 205, { align: 'right' }); }
-      docp.save('relatorio_analitico_' + (de || 'inicio') + '_a_' + (ate || 'hoje') + '.pdf');
-    };
-
-    window.parseDTString = (s) => { if (!s) return null; const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/); if (!m) return null; return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]); };
-    window.parseDateOnly = (s) => { if (!s) return null; const parts = s.split('/'); if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]); return null; };
-
-    window.editarDataHora = (target) => { const id = target + '-datetime'; const dtStr = document.getElementById(id).value; const d = window.parseDTString(dtStr) || new Date(); const yyyy = d.getFullYear(), mm = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0'); const hh = String(d.getHours()).padStart(2, '0'), mi = String(d.getMinutes()).padStart(2, '0'); document.getElementById('modal-dt-target').value = id; document.getElementById('modal-dt-record-id').value = ''; document.getElementById('modal-dt-date').value = `${yyyy}-${mm}-${dd}`; document.getElementById('modal-dt-time').value = `${hh}:${mi}`; document.getElementById('modal-dt').classList.add('show'); };
-    window.closeModalDT = () => { document.getElementById('modal-dt').classList.remove('show'); };
-    window.salvarModalDT = () => { const dateVal = document.getElementById('modal-dt-date').value; const timeVal = document.getElementById('modal-dt-time').value; if (!dateVal || !timeVal) return alert('Preencha data e hora.'); const nova = new Date(dateVal + 'T' + timeVal); const target = document.getElementById('modal-dt-target').value; document.getElementById(target).value = window.formatDT(nova); window.closeModalDT(); };
 
     window.atualizarSelectsVeiculos = () => {
       const veiculos = window.veiculosList || [];
