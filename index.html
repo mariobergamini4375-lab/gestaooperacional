@@ -1615,6 +1615,9 @@
       letter-spacing: .5px;
       text-transform: uppercase;
       border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .status-col-header.aberta {
@@ -1627,6 +1630,26 @@
 
     .status-col-header.concluida {
       color: var(--green);
+    }
+
+    .btn-ver-os {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid var(--purple);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--purple);
+      cursor: pointer;
+      transition: all .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-ver-os:hover {
+      background: rgba(139, 92, 246, 0.3);
+      transform: scale(1.02);
     }
 
     .status-col-body {
@@ -2278,7 +2301,6 @@
               <h3>🏗️ Consumo por Veículo</h3>
               <div id="rel-equip-bars"></div>
             </div>
-            <!-- Seção Fluxo de Estoque no Período REMOVIDA -->
             <div id="report-table-wrap">
               <div class="form-card" style="padding:0;overflow:hidden;">
                 <div style="padding:14px 16px 0;border-bottom:1px solid var(--border);margin-bottom:0;">
@@ -2546,7 +2568,7 @@
           </div>
         </div>
 
-        <!-- MANUTENÇÃO — ORDENS DE SERVIÇO (COM NOVOS FILTROS) -->
+        <!-- MANUTENÇÃO — ORDENS DE SERVIÇO -->
         <div class="section" id="section-manut-historico">
           <div class="manut-filter-row">
             <div class="filter-row" style="gap:10px;">
@@ -2713,7 +2735,6 @@
               </table>
             </div>
           </div>
-          <!-- Botão de Limpeza de Dados -->
           <div class="form-card" style="margin-top:16px; border-color: rgba(239,68,68,0.3);">
             <h3 style="color: #ef4444;">🧹 Limpeza de Dados</h3>
             <div class="alert" id="limpeza-alert"></div>
@@ -2727,8 +2748,8 @@
           </div>
         </div>
 
-      </div><!-- /content -->
-    </div><!-- /main -->
+      </div>
+    </div>
 
     <!-- BOTTOM NAV -->
     <nav class="bottom-nav" id="bottom-nav">
@@ -3060,13 +3081,9 @@
       });
 
       onSnapshot(query(manutCollection, orderBy("isoDate", "desc")), (snapshot) => {
-        console.log("📢 [DEBUG] Snapshot manutencoes recebido. Total documentos:", snapshot.docs.length);
         window.manutencoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
         if (window.currentSection === 'dashboard') window.updateDashboard();
-        if (window.currentSection === 'manut-historico') {
-          window.renderManutHistorico();
-        }
+        if (window.currentSection === 'manut-historico') window.renderManutHistorico();
         if (window.currentSection === 'manut-dashboard') window.renderManutDashboard();
       });
 
@@ -3135,8 +3152,6 @@
       }
     });
 
-    if (localStorage.getItem('cf_sessao_firebase') === '1') { }
-
     // ========== FUNÇÕES GLOBAIS ==========
     window.abastecimentos = [];
     window.entradas = [];
@@ -3158,41 +3173,8 @@
       }, 10000);
       window.updateDashboard();
       window.renderCompras();
-      setTimeout(() => {
-        if (window.manutencoes && window.manutencoes.length > 0) {
-          console.log("📢 [DEBUG] initApp - OS carregadas:", window.manutencoes.length);
-          window.renderManutHistorico();
-        }
-      }, 1000);
-    };
-
-    // Função para forçar recarregamento das OS
-    window.forcarRecarregamentoOS = () => {
-      console.log("📢 [DEBUG] Forçando recarregamento das OS...");
-      const loadingEl = document.getElementById('os-loading');
-      if (loadingEl) loadingEl.style.display = 'block';
-      
-      getDocs(query(manutCollection, orderBy("isoDate", "desc"))).then((snapshot) => {
-        window.manutencoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("📢 [DEBUG] Recarregamento concluído. Total OS:", window.manutencoes.length);
-        window.renderManutHistorico();
-        if (loadingEl) loadingEl.style.display = 'none';
-        window.showAlert('manut-alert', 'success', '✅ Ordens de serviço recarregadas com sucesso!');
-      }).catch(err => {
-        console.error("Erro ao recarregar OS:", err);
-        if (loadingEl) loadingEl.style.display = 'none';
-        window.showAlert('manut-alert', 'error', '❌ Erro ao recarregar OS.');
-      });
-    };
-
-    // Função para limpar filtros da OS
-    window.limparFiltrosOS = () => {
-      document.getElementById('manut-filtro-responsavel').value = '';
-      document.getElementById('manut-filtro-status').value = '';
-      document.getElementById('manut-filtro-equip').value = '';
-      document.getElementById('manut-filtro-data-inicio').value = '';
-      document.getElementById('manut-filtro-data-fim').value = '';
       window.renderManutHistorico();
+      window.renderManutDashboard();
     };
 
     window.updateDateTime = (id) => {
@@ -3245,10 +3227,7 @@
       }
       if (id === 'abastecimento') window.updateDateTime('abast-datetime');
       if (id === 'manut-registro') window.updateDateTime('manut-datetime');
-      if (id === 'manut-historico') {
-        console.log("📢 [DEBUG] Exibindo manut-historico, OS disponíveis:", window.manutencoes ? window.manutencoes.length : 0);
-        window.renderManutHistorico();
-      }
+      if (id === 'manut-historico') window.renderManutHistorico();
       if (id === 'manut-dashboard') window.renderManutDashboard();
       if (id === 'veiculos') window.renderVeiculos();
       if (id === 'equipamentos') window.renderEquipamentos();
@@ -3291,10 +3270,7 @@
 
     window.showAlert = (id, type, msg) => {
       const el = document.getElementById(id);
-      if (!el) {
-        console.warn("Alert element not found:", id);
-        return;
-      }
+      if (!el) return;
       el.className = 'alert show ' + type;
       el.innerHTML = msg;
       setTimeout(() => { if (el) el.className = 'alert'; }, 5000);
@@ -3605,8 +3581,8 @@
     window.renderCompras = () => {
       const lista = window.compras || [];
       const tbody = document.getElementById('tbody-compras');
-      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div>NonNull</tr>`; return; }
-      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span><tr><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span></td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></td>`).join('');
+      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div></td></tr>`; return; }
+      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</td><td style="white-space:nowrap;">${c.categoria}</td><td class="text-wrap" style="max-width:160px;">${c.descricao}</td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</td><td style="white-space:nowrap;">${c.pagamento}</td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</td><td style="white-space:nowrap;">${c.nf || '—'}</td><td style="white-space:nowrap;">${c.responsavel || '—'}</td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></td></tr>`).join('');
     };
 
     window.abrirModalEditarCompra = (id) => {
@@ -3720,9 +3696,9 @@
       document.getElementById('relatorio-qtd-periodo').textContent = lista.length;
       const tbody = document.getElementById('tbody-relatorio-compras');
       if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div>NonNull</tr>`;
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div></td></tr>`;
       } else {
-        tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:180px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span><tr><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></tr>`).join('');
+        tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</td><td style="white-space:nowrap;">${c.categoria}</td><td class="text-wrap" style="max-width:180px;">${c.descricao}</td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</td><td style="white-space:nowrap;">${c.pagamento}</td><td style="white-space:nowrap;">${c.nf || '—'}</td><td style="white-space:nowrap;">${c.responsavel || '—'}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></td></tr>`).join('');
       }
       document.getElementById('relatorio-compra-resultado').style.display = 'block';
     };
@@ -3777,7 +3753,6 @@
       docp.save(`relatorio_compras_${de || 'inicio'}_a_${ate || 'hoje'}.pdf`);
     };
 
-    // Exportar Relatório Compras para Excel
     window.exportarRelatorioComprasExcel = () => {
       const de = document.getElementById('relatorio-compra-de').value;
       const ate = document.getElementById('relatorio-compra-ate').value;
@@ -3821,10 +3796,8 @@
     
     // Função para calcular intervalos por veículo (KM e Tempo) - CORRIGIDA
     function calcularIntervalosPorVeiculo(eventos) {
-      // Filtrar apenas abastecimentos com medição para cálculo de intervalo KM
       const eventosPorVeiculo = {};
       
-      // Agrupar eventos por veículo
       eventos.forEach(evento => {
         if (evento.veiculo) {
           if (!eventosPorVeiculo[evento.veiculo]) {
@@ -3834,18 +3807,14 @@
         }
       });
       
-      // Para cada veículo, calcular intervalos
       Object.keys(eventosPorVeiculo).forEach(veiculo => {
         const eventosVeic = eventosPorVeiculo[veiculo];
-        // Ordenar por data (do mais antigo para o mais novo)
         eventosVeic.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
         
         let ultimaMedicao = null;
-        let ultimoEventoKm = null;
         let ultimaData = null;
         
         eventosVeic.forEach(evento => {
-          // Calcular intervalo de KM/HORÍMETRO (usando medição do próprio evento)
           if (evento.tipo === 'Abastecimento' && evento.tipoMedicao && evento.tipoMedicao !== 'nenhum' && evento.medicao !== null && evento.medicao !== undefined) {
             if (ultimaMedicao !== null) {
               const diff = evento.medicao - ultimaMedicao;
@@ -3854,12 +3823,10 @@
               evento.intervaloKm = '—';
             }
             ultimaMedicao = evento.medicao;
-            ultimoEventoKm = evento;
           } else {
             evento.intervaloKm = '—';
           }
           
-          // Calcular intervalo de tempo (diferença entre datas)
           if (ultimaData !== null) {
             const diffMs = new Date(evento.isoDate) - new Date(ultimaData);
             const diffHoras = diffMs / (1000 * 60 * 60);
@@ -3875,7 +3842,6 @@
           ultimaData = evento.isoDate;
         });
       });
-      
       return eventos;
     }
 
@@ -3992,13 +3958,8 @@
         });
       });
       
-      // Ordenar por data para cálculo correto
       eventosUnificados.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
-      
-      // Calcular intervalos por veículo
       const eventosComIntervalos = calcularIntervalosPorVeiculo(eventosUnificados);
-      
-      // Ordenar novamente para exibição (mais recente primeiro)
       eventosComIntervalos.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
       _relatorioAtual = eventosComIntervalos;
       
@@ -4248,14 +4209,59 @@
 
     window.closeModalEditAbast = () => { document.getElementById('modal-edit-abast').classList.remove('show'); };
 
-    // FUNÇÃO RENDER MANUT HISTORICO COM NOVOS FILTROS
-    window.renderManutHistorico = () => {
-      console.log("📢 [DEBUG] renderManutHistorico chamada");
-      const tbody = document.getElementById('tbody-manut');
-      if (!tbody) {
-        console.error("Elemento tbody-manut não encontrado!");
-        return;
+    // Função para redirecionar para OS com filtro
+    window.irParaOSComFiltro = (status, manterPeriodo = true) => {
+      document.getElementById('manut-filtro-responsavel').value = '';
+      document.getElementById('manut-filtro-equip').value = '';
+      
+      if (status) {
+        const statusSelect = document.getElementById('manut-filtro-status');
+        statusSelect.value = status;
+      } else {
+        document.getElementById('manut-filtro-status').value = '';
       }
+      
+      if (!manterPeriodo) {
+        document.getElementById('manut-filtro-data-inicio').value = '';
+        document.getElementById('manut-filtro-data-fim').value = '';
+      }
+      
+      const navElement = document.getElementById('nav-manut-historico');
+      window.showSection('manut-historico', navElement);
+      
+      setTimeout(() => {
+        window.renderManutHistorico();
+      }, 100);
+    };
+
+    window.limparFiltrosOS = () => {
+      document.getElementById('manut-filtro-responsavel').value = '';
+      document.getElementById('manut-filtro-status').value = '';
+      document.getElementById('manut-filtro-equip').value = '';
+      document.getElementById('manut-filtro-data-inicio').value = '';
+      document.getElementById('manut-filtro-data-fim').value = '';
+      window.renderManutHistorico();
+    };
+
+    window.forcarRecarregamentoOS = () => {
+      const loadingEl = document.getElementById('os-loading');
+      if (loadingEl) loadingEl.style.display = 'block';
+      
+      getDocs(query(manutCollection, orderBy("isoDate", "desc"))).then((snapshot) => {
+        window.manutencoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        window.renderManutHistorico();
+        if (loadingEl) loadingEl.style.display = 'none';
+        window.showAlert('manut-alert', 'success', '✅ Ordens de serviço recarregadas com sucesso!');
+      }).catch(err => {
+        console.error("Erro ao recarregar OS:", err);
+        if (loadingEl) loadingEl.style.display = 'none';
+        window.showAlert('manut-alert', 'error', '❌ Erro ao recarregar OS.');
+      });
+    };
+
+    window.renderManutHistorico = () => {
+      const tbody = document.getElementById('tbody-manut');
+      if (!tbody) return;
       
       const filtroResponsavel = (document.getElementById('manut-filtro-responsavel')?.value || '').toLowerCase();
       const filtroStatus = document.getElementById('manut-filtro-status')?.value || '';
@@ -4265,9 +4271,6 @@
       
       let lista = window.manutencoes || [];
       
-      console.log("📢 [DEBUG] Total de OS na memória:", lista.length);
-      
-      // Aplicar filtros
       if (filtroResponsavel) {
         lista = lista.filter(m => (m.responsavel || '').toLowerCase().includes(filtroResponsavel));
       }
@@ -4280,24 +4283,16 @@
       if (filtroDataInicio) {
         const dataInicio = new Date(filtroDataInicio);
         dataInicio.setHours(0, 0, 0, 0);
-        lista = lista.filter(m => {
-          const dataOS = new Date(m.isoDate);
-          return dataOS >= dataInicio;
-        });
+        lista = lista.filter(m => new Date(m.isoDate) >= dataInicio);
       }
       if (filtroDataFim) {
         const dataFim = new Date(filtroDataFim);
         dataFim.setHours(23, 59, 59, 999);
-        lista = lista.filter(m => {
-          const dataOS = new Date(m.isoDate);
-          return dataOS <= dataFim;
-        });
+        lista = lista.filter(m => new Date(m.isoDate) <= dataFim);
       }
       
-      console.log("📢 [DEBUG] OS após filtros:", lista.length);
-      
       if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`;
+        tbody.innerHTML = `<table><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`;
         return;
       }
       
@@ -4311,13 +4306,11 @@
           <td style="white-space:nowrap;"><span class="badge ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}">${m.prioridade || 'Normal'}</span></td>
           <td style="white-space:nowrap;"><span class="badge ${window.statusClass(m.status)}">${m.status || 'Aberta'}</span></td>
           <td style="white-space:nowrap;">${m.responsavel || '—'}</td>
-          <td style="white-space:nowrap;">R$ ${custoDisplay.toFixed(2)}</td>
-          <td class="text-wrap" style="max-width:180px;">${(m.descricao || '').substring(0, 50)}${(m.descricao || '').length > 50 ? '...' : ''}</td>
-          <td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalStatus('${m.id}')" style="color:var(--blue2);" title="Alterar Status">📝</button><button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button></td>
+          <td style="white-space:nowrap;">R$ ${custoDisplay.toFixed(2)}</span></td>
+          <td class="text-wrap" style="max-width:180px;">${(m.descricao || '').substring(0, 50)}${(m.descricao || '').length > 50 ? '...' : ''}</span></td>
+          <td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalStatus('${m.id}')" style="color:var(--blue2);" title="Alterar Status">📝</button><button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button></span>
         </tr>`;
       }).join('');
-      
-      console.log("📢 [DEBUG] renderManutHistorico concluído");
     };
 
     window.exportarOSExcel = () => {
@@ -4406,12 +4399,53 @@
       document.getElementById('md-andamento').textContent = andamento;
       document.getElementById('md-concluidas').textContent = concluidas;
       document.getElementById('md-urgentes').textContent = urgentes;
+      
       const board = document.getElementById('manut-board');
-      const statuses = ['Aberta', 'Em andamento', 'Concluída'];
-      board.innerHTML = statuses.map(s => `<div class="status-col"><div class="status-col-header ${window.statusClass(s)}">${s}</div><div class="status-col-body">${manut.filter(m => m.status === s).slice(0, 8).map(m => `<div class="manut-mini-card ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}"><div class="mc-equip">${m.nome} (${m.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento'})</div><div class="mc-tipo">${m.tipoManut} · ${(m.dt || '').slice(0, 10)}</div></div>`).join('') || '<div class="empty-state" style="padding:12px;"><p style="font-size:11px;">Nenhuma OS</p></div>'}</div></div>`).join('');
+      const statuses = [
+        { nome: 'Aberta', corClass: 'aberta' },
+        { nome: 'Em andamento', corClass: 'andamento' },
+        { nome: 'Concluída', corClass: 'concluida' }
+      ];
+      
+      board.innerHTML = statuses.map(s => `
+        <div class="status-col">
+          <div class="status-col-header ${s.corClass}">
+            <span>${s.nome}</span>
+            <button class="btn-ver-os" onclick="window.irParaOSComFiltro('${s.nome}', true)" title="Ver todas as OS ${s.nome}">
+              🔍 Ver OS
+            </button>
+          </div>
+          <div class="status-col-body">
+            ${manut.filter(m => m.status === s.nome).slice(0, 8).map(m => `
+              <div class="manut-mini-card ${m.prioridade === 'Urgente' ? 'urgente' : (m.prioridade === 'Preventiva' ? 'preventiva' : 'normal')}">
+                <div class="mc-equip">${m.nome} (${m.tipoItem === 'veiculo' ? 'Veículo' : 'Equipamento'})</div>
+                <div class="mc-tipo">${m.tipoManut} · ${(m.dt || '').slice(0, 10)}</div>
+              </div>
+            `).join('') || '<div class="empty-state" style="padding:12px;"><p style="font-size:11px;">Nenhuma OS</p></div>'}
+          </div>
+        </div>
+      `).join('');
+      
       const custoTotalEstimado = manut.reduce((s, m) => s + (m.custoEstimado || 0), 0);
       const custoTotalReal = manut.reduce((s, m) => s + (m.custoReal || 0), 0);
-      document.getElementById('manut-custos').innerHTML = `<div class="cards-grid"><div class="dash-card"><div class="card-label">💰 Custo Estimado Total</div><div class="card-value" style="font-size:24px;">R$ ${custoTotalEstimado.toFixed(2)}</div></div><div class="dash-card"><div class="card-label">✅ Custo Real Total</div><div class="card-value" style="font-size:24px;color:var(--green);">R$ ${custoTotalReal.toFixed(2)}</div></div></div>`;
+      document.getElementById('manut-custos').innerHTML = `
+        <div class="cards-grid">
+          <div class="dash-card">
+            <div class="card-label">💰 Custo Estimado Total</div>
+            <div class="card-value" style="font-size:24px;">R$ ${custoTotalEstimado.toFixed(2)}</div>
+          </div>
+          <div class="dash-card">
+            <div class="card-label">✅ Custo Real Total</div>
+            <div class="card-value" style="font-size:24px;color:var(--green);">R$ ${custoTotalReal.toFixed(2)}</div>
+          </div>
+          <div class="dash-card purple">
+            <div class="card-label">📋 Ver OS</div>
+            <button class="btn-ver-os" onclick="window.irParaOSComFiltro(null, true)" style="margin-top:8px; width:100%; justify-content:center;">
+              🔍 Ver todas as OS
+            </button>
+          </div>
+        </div>
+      `;
     };
 
     window.statusClass = (s) => { const map = { 'Aberta': 'aberta', 'Em andamento': 'andamento', 'Concluída': 'concluida', 'Cancelada': 'cancelada' }; return map[s] || 'out'; };
@@ -4600,7 +4634,7 @@
       const selects = [document.getElementById('abast-equip'), document.getElementById('rel-equip'), document.getElementById('manut-veiculo')];
       selects.forEach(select => { if (!select) return; const currentValue = select.value; let placeholder = select.querySelector('option[value=""]'); select.innerHTML = ''; if (placeholder) select.appendChild(placeholder); else { const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Selecione...'; select.appendChild(opt); } veiculos.forEach(eq => { const option = document.createElement('option'); option.value = eq; option.textContent = eq; select.appendChild(option); }); if (currentValue && veiculos.includes(currentValue)) select.value = currentValue; else select.value = ''; }); if (typeof window.checkOutros === 'function') window.checkOutros();
     };
-    window.renderVeiculos = () => { const veiculos = window.veiculosList || []; const tbody = document.getElementById('tbody-veiculos'); if (!tbody) return; if (veiculos.length === 0) { tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">🚗</div><p>Nenhum veículo cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = veiculos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarVeiculo('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirVeiculo('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></span></tr>`).join(''); };
+    window.renderVeiculos = () => { const veiculos = window.veiculosList || []; const tbody = document.getElementById('tbody-veiculos'); if (!tbody) return; if (veiculos.length === 0) { tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">🚗</div><p>Nenhum veículo cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = veiculos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarVeiculo('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirVeiculo('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></td></tr>`).join(''); };
     window.acrescentarVeiculo = async () => { const nome = document.getElementById('novo-veiculo-nome').value.trim(); if (!nome) { window.showAlert('veic-alert', 'error', '⚠ Digite o nome do veículo.'); return; } const veiculos = window.veiculosList || []; if (veiculos.includes(nome)) { window.showAlert('veic-alert', 'error', '⚠ Veículo já cadastrado.'); return; } veiculos.push(nome); await setDoc(veiculosDoc, { lista: veiculos }); document.getElementById('novo-veiculo-nome').value = ''; window.showAlert('veic-alert', 'success', '✔ Veículo adicionado com sucesso!'); };
     window.abrirModalEditarVeiculo = (nomeAtual) => { document.getElementById('modal-veic-id').value = nomeAtual; document.getElementById('modal-veic-nome').value = nomeAtual; document.getElementById('modal-editar-veiculo').classList.add('show'); };
     window.closeModalVeiculo = () => { document.getElementById('modal-editar-veiculo').classList.remove('show'); };
@@ -4608,7 +4642,7 @@
     window.excluirVeiculo = async (nome) => { if (!confirm(`Tem certeza que deseja excluir o veículo "${nome}"? Todos os abastecimentos e OS vinculados a ele serão perdidos.`)) return; let veiculos = [...(window.veiculosList || [])]; veiculos = veiculos.filter(e => e !== nome); await setDoc(veiculosDoc, { lista: veiculos }); const abastSnapshot = await getDocs(collection(db, "abastecimentos")); for (const docSnap of abastSnapshot.docs) { const data = docSnap.data(); if (data.equip === nome || data.equipOrig === nome) await deleteDoc(doc(db, "abastecimentos", docSnap.id)); } const manutSnapshot = await getDocs(collection(db, "manutencoes")); for (const docSnap of manutSnapshot.docs) { const data = docSnap.data(); if (data.tipoItem === 'veiculo' && data.nome === nome) await deleteDoc(doc(db, "manutencoes", docSnap.id)); } window.showAlert('veic-alert', 'success', '✔ Veículo excluído e registros vinculados removidos.'); };
 
     window.atualizarSelectsEquipamentos = () => { const equipamentos = window.equipamentosList || []; const select = document.getElementById('manut-equipamento'); if (!select) return; const currentValue = select.value; let placeholder = select.querySelector('option[value=""]'); select.innerHTML = ''; if (placeholder) select.appendChild(placeholder); else { const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Selecione...'; select.appendChild(opt); } equipamentos.forEach(eq => { const option = document.createElement('option'); option.value = eq; option.textContent = eq; select.appendChild(option); }); if (currentValue && equipamentos.includes(currentValue)) select.value = currentValue; else select.value = ''; };
-    window.renderEquipamentos = () => { const equipamentos = window.equipamentosList || []; const tbody = document.getElementById('tbody-equipamentos'); if (!tbody) return; if (equipamentos.length === 0) { tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Nenhum equipamento cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = equipamentos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarEquipamento('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEquipamento('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></span></tr>`).join(''); };
+    window.renderEquipamentos = () => { const equipamentos = window.equipamentosList || []; const tbody = document.getElementById('tbody-equipamentos'); if (!tbody) return; if (equipamentos.length === 0) { tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Nenhum equipamento cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = equipamentos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarEquipamento('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEquipamento('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></td></tr>`).join(''); };
     window.acrescentarEquipamento = async () => { const nome = document.getElementById('novo-equipamento-nome').value.trim(); if (!nome) { window.showAlert('equip-alert', 'error', '⚠ Digite o nome do equipamento.'); return; } const equipamentos = window.equipamentosList || []; if (equipamentos.includes(nome)) { window.showAlert('equip-alert', 'error', '⚠ Equipamento já cadastrado.'); return; } equipamentos.push(nome); await setDoc(equipamentosDoc, { lista: equipamentos }); document.getElementById('novo-equipamento-nome').value = ''; window.showAlert('equip-alert', 'success', '✔ Equipamento adicionado com sucesso!'); };
     window.abrirModalEditarEquipamento = (nomeAtual) => { document.getElementById('modal-equip-id').value = nomeAtual; document.getElementById('modal-equip-nome').value = nomeAtual; document.getElementById('modal-editar-equipamento').classList.add('show'); };
     window.closeModalEquipamento = () => { document.getElementById('modal-editar-equipamento').classList.remove('show'); };
