@@ -2546,24 +2546,45 @@
           </div>
         </div>
 
-        <!-- MANUTENÇÃO — ORDENS DE SERVIÇO (CORRIGIDO) -->
+        <!-- MANUTENÇÃO — ORDENS DE SERVIÇO (COM NOVOS FILTROS) -->
         <div class="section" id="section-manut-historico">
           <div class="manut-filter-row">
-            <input type="text" id="manut-filtro-equip" placeholder="Filtrar por veículo ou equipamento..."
-              style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-size:14px;outline:none;width:100%;">
-            <div style="display:flex;gap:8px;">
-              <select id="manut-filtro-status"
-                style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-size:14px;outline:none;">
-                <option value="">Todos os status</option>
-                <option value="Aberta">Aberta</option>
-                <option value="Em andamento">Em andamento</option>
-                <option value="Concluída">Concluída</option>
-                <option value="Cancelada">Cancelada</option>
-              </select>
-              <button class="btn-secondary" onclick="renderManutHistorico()">🔎</button>
-              <button class="btn-secondary" onclick="forcarRecarregamentoOS()" title="Forçar Recarregamento">🔄 Recarregar</button>
-              <button class="btn-secondary" onclick="salvarOSPDF()" title="Exportar OS para PDF">📄 PDF</button>
-              <button class="btn-excel" onclick="exportarOSExcel()" title="Exportar OS para Excel">📊 Excel</button>
+            <div class="filter-row" style="gap:10px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Buscar por Responsável</label>
+                <input type="text" id="manut-filtro-responsavel" placeholder="Nome do responsável...">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Status</label>
+                <select id="manut-filtro-status">
+                  <option value="">Todos os status</option>
+                  <option value="Aberta">Aberta</option>
+                  <option value="Em andamento">Em andamento</option>
+                  <option value="Concluída">Concluída</option>
+                  <option value="Cancelada">Cancelada</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Buscar por Veículo/Equipamento</label>
+                <input type="text" id="manut-filtro-equip" placeholder="Nome do veículo ou equipamento...">
+              </div>
+            </div>
+            <div class="filter-row" style="gap:10px; margin-top:0;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Data Inicial (de)</label>
+                <input type="date" id="manut-filtro-data-inicio">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Data Final (até)</label>
+                <input type="date" id="manut-filtro-data-fim">
+              </div>
+              <div class="filter-actions" style="margin-top:0;">
+                <button class="btn-submit-purple" onclick="renderManutHistorico()">🔎 Filtrar</button>
+                <button class="btn-secondary" onclick="limparFiltrosOS()">✕ Limpar</button>
+                <button class="btn-secondary" onclick="forcarRecarregamentoOS()" title="Forçar Recarregamento">🔄 Recarregar</button>
+                <button class="btn-secondary" onclick="salvarOSPDF()" title="Exportar OS para PDF">📄 PDF</button>
+                <button class="btn-excel" onclick="exportarOSExcel()" title="Exportar OS para Excel">📊 Excel</button>
+              </div>
             </div>
           </div>
           <div class="table-wrap">
@@ -2585,7 +2606,6 @@
               <tbody id="tbody-manut"></tbody>
             </table>
           </div>
-          <!-- Indicador de carregamento -->
           <div id="os-loading" style="display:none; text-align:center; padding:20px; color:var(--text3);">
             ⏳ Carregando ordens de serviço...
           </div>
@@ -3039,18 +3059,12 @@
         if (window.currentSection === 'relatorio' && window._relatorioGerado) window.gerarRelatorio();
       });
 
-      // SNAPSHOT CORRIGIDO PARA MANUTENÇÕES - COM LOG DE DEBUG
       onSnapshot(query(manutCollection, orderBy("isoDate", "desc")), (snapshot) => {
         console.log("📢 [DEBUG] Snapshot manutencoes recebido. Total documentos:", snapshot.docs.length);
-        snapshot.docs.forEach(doc => {
-          console.log("  - OS:", doc.id, doc.data().nome, doc.data().status);
-        });
         window.manutencoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("📢 [DEBUG] window.manutencoes atualizado, total:", window.manutencoes.length);
         
         if (window.currentSection === 'dashboard') window.updateDashboard();
         if (window.currentSection === 'manut-historico') {
-          console.log("📢 [DEBUG] Renderizando manut-historico...");
           window.renderManutHistorico();
         }
         if (window.currentSection === 'manut-dashboard') window.renderManutDashboard();
@@ -3144,7 +3158,6 @@
       }, 10000);
       window.updateDashboard();
       window.renderCompras();
-      // Força uma verificação inicial das OS
       setTimeout(() => {
         if (window.manutencoes && window.manutencoes.length > 0) {
           console.log("📢 [DEBUG] initApp - OS carregadas:", window.manutencoes.length);
@@ -3159,7 +3172,6 @@
       const loadingEl = document.getElementById('os-loading');
       if (loadingEl) loadingEl.style.display = 'block';
       
-      // Força uma nova consulta ao Firestore
       getDocs(query(manutCollection, orderBy("isoDate", "desc"))).then((snapshot) => {
         window.manutencoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log("📢 [DEBUG] Recarregamento concluído. Total OS:", window.manutencoes.length);
@@ -3171,6 +3183,16 @@
         if (loadingEl) loadingEl.style.display = 'none';
         window.showAlert('manut-alert', 'error', '❌ Erro ao recarregar OS.');
       });
+    };
+
+    // Função para limpar filtros da OS
+    window.limparFiltrosOS = () => {
+      document.getElementById('manut-filtro-responsavel').value = '';
+      document.getElementById('manut-filtro-status').value = '';
+      document.getElementById('manut-filtro-equip').value = '';
+      document.getElementById('manut-filtro-data-inicio').value = '';
+      document.getElementById('manut-filtro-data-fim').value = '';
+      window.renderManutHistorico();
     };
 
     window.updateDateTime = (id) => {
@@ -3584,7 +3606,7 @@
       const lista = window.compras || [];
       const tbody = document.getElementById('tbody-compras');
       if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div>NonNull</tr>`; return; }
-      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span></td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span></td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></tr>`).join('');
+      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:160px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span><tr><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</span></td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</span></td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</span></td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></td>`).join('');
     };
 
     window.abrirModalEditarCompra = (id) => {
@@ -3698,7 +3720,7 @@
       document.getElementById('relatorio-qtd-periodo').textContent = lista.length;
       const tbody = document.getElementById('tbody-relatorio-compras');
       if (lista.length === 0) {
-        tbody.innerHTML = `<td><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div>NonNull</tr>`;
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div>NonNull</tr>`;
       } else {
         tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</span></td><td style="white-space:nowrap;">${c.fornecedor}</span></td><td style="white-space:nowrap;">${c.categoria}</span></td><td class="text-wrap" style="max-width:180px;">${c.descricao}</span></td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</span></td><td style="white-space:nowrap;">${c.responsavel || '—'}</span><tr><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></span></tr>`).join('');
       }
@@ -3797,46 +3819,49 @@
 
     let _relatorioAtual = [];
     
-    // Função para calcular intervalos por veículo (KM e Tempo)
+    // Função para calcular intervalos por veículo (KM e Tempo) - CORRIGIDA
     function calcularIntervalosPorVeiculo(eventos) {
+      // Filtrar apenas abastecimentos com medição para cálculo de intervalo KM
       const eventosPorVeiculo = {};
+      
+      // Agrupar eventos por veículo
       eventos.forEach(evento => {
-        if (!eventosPorVeiculo[evento.veiculo]) {
-          eventosPorVeiculo[evento.veiculo] = [];
+        if (evento.veiculo) {
+          if (!eventosPorVeiculo[evento.veiculo]) {
+            eventosPorVeiculo[evento.veiculo] = [];
+          }
+          eventosPorVeiculo[evento.veiculo].push(evento);
         }
-        eventosPorVeiculo[evento.veiculo].push(evento);
       });
       
+      // Para cada veículo, calcular intervalos
       Object.keys(eventosPorVeiculo).forEach(veiculo => {
         const eventosVeic = eventosPorVeiculo[veiculo];
+        // Ordenar por data (do mais antigo para o mais novo)
         eventosVeic.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
         
-        let ultimoKm = null;
-        let ultimoData = null;
+        let ultimaMedicao = null;
+        let ultimoEventoKm = null;
+        let ultimaData = null;
         
         eventosVeic.forEach(evento => {
-          if (evento.medicao !== null && evento.medicao !== undefined && evento.tipo === 'km') {
-            if (ultimoKm !== null) {
-              const diffKm = evento.medicao - ultimoKm;
-              evento.intervaloKm = diffKm > 0 ? diffKm.toFixed(1) + ' km' : (diffKm === 0 ? '0 km' : '—');
+          // Calcular intervalo de KM/HORÍMETRO (usando medição do próprio evento)
+          if (evento.tipo === 'Abastecimento' && evento.tipoMedicao && evento.tipoMedicao !== 'nenhum' && evento.medicao !== null && evento.medicao !== undefined) {
+            if (ultimaMedicao !== null) {
+              const diff = evento.medicao - ultimaMedicao;
+              evento.intervaloKm = diff > 0 ? diff.toFixed(1) + ' ' + (evento.tipoMedicao === 'km' ? 'km' : 'h') : (diff === 0 ? '0 ' + (evento.tipoMedicao === 'km' ? 'km' : 'h') : '—');
             } else {
               evento.intervaloKm = '—';
             }
-            ultimoKm = evento.medicao;
-          } else if (evento.tipo === 'horimetro' && evento.medicao !== null) {
-            if (ultimoKm !== null) {
-              const diff = evento.medicao - ultimoKm;
-              evento.intervaloKm = diff > 0 ? diff.toFixed(1) + ' h' : (diff === 0 ? '0 h' : '—');
-            } else {
-              evento.intervaloKm = '—';
-            }
-            ultimoKm = evento.medicao;
+            ultimaMedicao = evento.medicao;
+            ultimoEventoKm = evento;
           } else {
             evento.intervaloKm = '—';
           }
           
-          if (ultimoData !== null) {
-            const diffMs = new Date(evento.isoDate) - new Date(ultimoData);
+          // Calcular intervalo de tempo (diferença entre datas)
+          if (ultimaData !== null) {
+            const diffMs = new Date(evento.isoDate) - new Date(ultimaData);
             const diffHoras = diffMs / (1000 * 60 * 60);
             if (diffHoras < 24) {
               evento.intervaloTempo = diffHoras.toFixed(1) + ' h';
@@ -3847,9 +3872,10 @@
           } else {
             evento.intervaloTempo = '—';
           }
-          ultimoData = evento.isoDate;
+          ultimaData = evento.isoDate;
         });
       });
+      
       return eventos;
     }
 
@@ -3966,67 +3992,21 @@
         });
       });
       
+      // Ordenar por data para cálculo correto
       eventosUnificados.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
       
-      const abastComKm = eventosUnificados.filter(e => e.tipo === 'Abastecimento' && e.tipoMedicao === 'km' && e.medicao !== null);
-      const veiculosComKm = {};
-      abastComKm.forEach(e => {
-        if (!veiculosComKm[e.veiculo]) veiculosComKm[e.veiculo] = [];
-        veiculosComKm[e.veiculo].push(e);
-      });
+      // Calcular intervalos por veículo
+      const eventosComIntervalos = calcularIntervalosPorVeiculo(eventosUnificados);
       
-      Object.keys(veiculosComKm).forEach(veiculo => {
-        const eventosVeic = veiculosComKm[veiculo];
-        eventosVeic.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
-        let ultimoKm = null;
-        eventosVeic.forEach(evento => {
-          if (ultimoKm !== null) {
-            const diff = evento.medicao - ultimoKm;
-            evento.intervaloKm = diff > 0 ? diff.toFixed(1) + ' km' : (diff === 0 ? '0 km' : '—');
-          } else {
-            evento.intervaloKm = '—';
-          }
-          ultimoKm = evento.medicao;
-        });
-      });
-      
-      const eventosPorVeiculo = {};
-      eventosUnificados.forEach(e => {
-        if (e.veiculo) {
-          if (!eventosPorVeiculo[e.veiculo]) eventosPorVeiculo[e.veiculo] = [];
-          eventosPorVeiculo[e.veiculo].push(e);
-        }
-      });
-      
-      Object.keys(eventosPorVeiculo).forEach(veiculo => {
-        const evs = eventosPorVeiculo[veiculo];
-        evs.sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate));
-        let ultimaData = null;
-        evs.forEach(ev => {
-          if (ultimaData !== null) {
-            const diffMs = new Date(ev.isoDate) - new Date(ultimaData);
-            const diffHoras = diffMs / (1000 * 60 * 60);
-            if (diffHoras < 24) {
-              ev.intervaloTempo = diffHoras.toFixed(1) + ' h';
-            } else {
-              const diffDias = diffHoras / 24;
-              ev.intervaloTempo = diffDias.toFixed(1) + ' d';
-            }
-          } else {
-            ev.intervaloTempo = '—';
-          }
-          ultimaData = ev.isoDate;
-        });
-      });
-      
-      eventosUnificados.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
-      _relatorioAtual = eventosUnificados;
+      // Ordenar novamente para exibição (mais recente primeiro)
+      eventosComIntervalos.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
+      _relatorioAtual = eventosComIntervalos;
       
       const tbody = document.getElementById('tbody-report');
-      if (eventosUnificados.length === 0) {
+      if (eventosComIntervalos.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔎</div><p>Nenhum registro encontrado.</p></div>NonNull</tr>`;
       } else {
-        tbody.innerHTML = eventosUnificados.map(ev => {
+        tbody.innerHTML = eventosComIntervalos.map(ev => {
           const litrosDisplay = ev.tipo === 'Abastecimento' ? `-${Math.abs(ev.litros).toFixed(1)} L` : `+${ev.litros.toFixed(1)} L`;
           const litrosColor = ev.tipo === 'Abastecimento' ? 'var(--accent)' : 'var(--green)';
           const medicaoDisplay = (ev.medicao !== null && ev.tipoMedicao && ev.tipoMedicao !== 'nenhum') ? ev.medicao.toFixed(1) + ' ' + (ev.tipoMedicao === 'km' ? 'km' : 'h') : '—';
@@ -4268,7 +4248,7 @@
 
     window.closeModalEditAbast = () => { document.getElementById('modal-edit-abast').classList.remove('show'); };
 
-    // FUNÇÃO RENDER MANUT HISTORICO CORRIGIDA
+    // FUNÇÃO RENDER MANUT HISTORICO COM NOVOS FILTROS
     window.renderManutHistorico = () => {
       console.log("📢 [DEBUG] renderManutHistorico chamada");
       const tbody = document.getElementById('tbody-manut');
@@ -4277,20 +4257,47 @@
         return;
       }
       
-      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroResponsavel = (document.getElementById('manut-filtro-responsavel')?.value || '').toLowerCase();
       const filtroStatus = document.getElementById('manut-filtro-status')?.value || '';
+      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroDataInicio = document.getElementById('manut-filtro-data-inicio')?.value || '';
+      const filtroDataFim = document.getElementById('manut-filtro-data-fim')?.value || '';
+      
       let lista = window.manutencoes || [];
       
       console.log("📢 [DEBUG] Total de OS na memória:", lista.length);
-      console.log("📢 [DEBUG] OS:", lista.map(os => `${os.nome} (${os.status})`));
       
-      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
-      if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
+      // Aplicar filtros
+      if (filtroResponsavel) {
+        lista = lista.filter(m => (m.responsavel || '').toLowerCase().includes(filtroResponsavel));
+      }
+      if (filtroStatus) {
+        lista = lista.filter(m => m.status === filtroStatus);
+      }
+      if (filtroEquip) {
+        lista = lista.filter(m => (m.nome || '').toLowerCase().includes(filtroEquip));
+      }
+      if (filtroDataInicio) {
+        const dataInicio = new Date(filtroDataInicio);
+        dataInicio.setHours(0, 0, 0, 0);
+        lista = lista.filter(m => {
+          const dataOS = new Date(m.isoDate);
+          return dataOS >= dataInicio;
+        });
+      }
+      if (filtroDataFim) {
+        const dataFim = new Date(filtroDataFim);
+        dataFim.setHours(23, 59, 59, 999);
+        lista = lista.filter(m => {
+          const dataOS = new Date(m.isoDate);
+          return dataOS <= dataFim;
+        });
+      }
       
       console.log("📢 [DEBUG] OS após filtros:", lista.length);
       
       if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`;
         return;
       }
       
@@ -4314,11 +4321,27 @@
     };
 
     window.exportarOSExcel = () => {
-      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroResponsavel = (document.getElementById('manut-filtro-responsavel')?.value || '').toLowerCase();
       const filtroStatus = document.getElementById('manut-filtro-status')?.value || '';
+      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroDataInicio = document.getElementById('manut-filtro-data-inicio')?.value || '';
+      const filtroDataFim = document.getElementById('manut-filtro-data-fim')?.value || '';
+      
       let lista = window.manutencoes || [];
-      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
+      
+      if (filtroResponsavel) lista = lista.filter(m => (m.responsavel || '').toLowerCase().includes(filtroResponsavel));
       if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
+      if (filtroEquip) lista = lista.filter(m => (m.nome || '').toLowerCase().includes(filtroEquip));
+      if (filtroDataInicio) {
+        const dataInicio = new Date(filtroDataInicio);
+        dataInicio.setHours(0, 0, 0, 0);
+        lista = lista.filter(m => new Date(m.isoDate) >= dataInicio);
+      }
+      if (filtroDataFim) {
+        const dataFim = new Date(filtroDataFim);
+        dataFim.setHours(23, 59, 59, 999);
+        lista = lista.filter(m => new Date(m.isoDate) <= dataFim);
+      }
 
       if (lista.length === 0) { alert('Nenhuma OS para exportar.'); return; }
 
@@ -4394,11 +4417,28 @@
     window.statusClass = (s) => { const map = { 'Aberta': 'aberta', 'Em andamento': 'andamento', 'Concluída': 'concluida', 'Cancelada': 'cancelada' }; return map[s] || 'out'; };
 
     window.salvarOSPDF = () => {
-      let lista = window.manutencoes || [];
-      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroResponsavel = (document.getElementById('manut-filtro-responsavel')?.value || '').toLowerCase();
       const filtroStatus = document.getElementById('manut-filtro-status')?.value || '';
-      if (filtroEquip) lista = lista.filter(m => m.nome.toLowerCase().includes(filtroEquip));
+      const filtroEquip = (document.getElementById('manut-filtro-equip')?.value || '').toLowerCase();
+      const filtroDataInicio = document.getElementById('manut-filtro-data-inicio')?.value || '';
+      const filtroDataFim = document.getElementById('manut-filtro-data-fim')?.value || '';
+      
+      let lista = window.manutencoes || [];
+      
+      if (filtroResponsavel) lista = lista.filter(m => (m.responsavel || '').toLowerCase().includes(filtroResponsavel));
       if (filtroStatus) lista = lista.filter(m => m.status === filtroStatus);
+      if (filtroEquip) lista = lista.filter(m => (m.nome || '').toLowerCase().includes(filtroEquip));
+      if (filtroDataInicio) {
+        const dataInicio = new Date(filtroDataInicio);
+        dataInicio.setHours(0, 0, 0, 0);
+        lista = lista.filter(m => new Date(m.isoDate) >= dataInicio);
+      }
+      if (filtroDataFim) {
+        const dataFim = new Date(filtroDataFim);
+        dataFim.setHours(23, 59, 59, 999);
+        lista = lista.filter(m => new Date(m.isoDate) <= dataFim);
+      }
+      
       if (lista.length === 0) { alert('Nenhuma OS para exportar.'); return; }
       const { jsPDF } = window.jspdf;
       const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
