@@ -73,7 +73,10 @@
       padding: 0;
     }
 
-    html,
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       height: 100%;
       font-family: 'Inter', sans-serif;
@@ -95,6 +98,42 @@
     ::-webkit-scrollbar-thumb {
       background: var(--bg4);
       border-radius: 4px;
+    }
+
+    /* Botão Voltar ao Topo */
+    .back-to-top {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: var(--purple);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 99;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      border: none;
+    }
+
+    .back-to-top.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .back-to-top:hover {
+      transform: scale(1.1);
+      background: var(--accent);
+    }
+
+    .back-to-top span {
+      font-size: 24px;
+      color: white;
     }
 
     /* ===== LOGIN ===== */
@@ -1354,6 +1393,24 @@
       color: var(--blue);
     }
 
+    .btn-status {
+      background: none;
+      border: none;
+      color: var(--purple);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      transition: all .15s;
+      min-width: 36px;
+      min-height: 36px;
+    }
+
+    .btn-status:hover {
+      background: rgba(139, 92, 246, .1);
+      color: var(--purple);
+    }
+
     .empty-state {
       text-align: center;
       padding: 40px 16px;
@@ -1757,7 +1814,7 @@
 
     .modal-sheet.center-modal {
       border-radius: 20px;
-      max-width: 420px;
+      max-width: 700px;
       margin: 16px;
       padding: 24px 20px;
       max-height: 90vh;
@@ -1828,7 +1885,8 @@
       .btn-edit,
       .filter-actions,
       .tabs,
-      .theme-toggle {
+      .theme-toggle,
+      .back-to-top {
         display: none !important;
       }
 
@@ -2385,7 +2443,7 @@
           <div class="form-card" style="margin-top:12px;">
             <h3>📋 Compras Registradas</h3>
             <div class="table-wrap">
-              <table>
+              <td>
                 <thead>
                   <tr>
                     <th>Data</th>
@@ -2724,7 +2782,7 @@
           <div class="form-card">
             <h3>📋 Lista de Equipamentos (editar/excluir)</h3>
             <div class="table-wrap">
-              <table>
+              </table>
                 <thead>
                   <tr>
                     <th>Equipamento</th>
@@ -2766,6 +2824,11 @@
         onclick="showSection('manut-registro',document.getElementById('nav-manut-registro'));updateBottomNav('manut-registro')"><span
           class="bnav-icon">🔧</span><span>Manutenção</span></button>
     </nav>
+
+    <!-- Botão Voltar ao Topo -->
+    <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Voltar ao topo">
+      <span>⬆️</span>
+    </button>
 
     <!-- MODAL EDITAR DATA/HORA -->
     <div id="modal-dt" class="modal-bg" onclick="if(event.target===this)closeModalDT()">
@@ -2819,6 +2882,60 @@
             placeholder="Detalhes do serviço realizado..."></textarea></div>
         <div class="modal-actions"><button onclick="salvarStatus()" class="btn-submit-purple">Salvar</button><button
             onclick="closeModalStatus()" class="btn-secondary">Cancelar</button></div>
+      </div>
+    </div>
+
+    <!-- MODAL EDIÇÃO COMPLETA DE OS -->
+    <div id="modal-edit-os" class="modal-bg center" onclick="if(event.target===this)closeModalEditOS()">
+      <div class="modal-sheet center-modal" style="max-width:700px;">
+        <div class="modal-header"><span>✏️ Editar Ordem de Serviço</span><button class="modal-close"
+            onclick="closeModalEditOS()">×</button></div>
+        <input type="hidden" id="edit-os-id">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group full"><label>Data/Hora *</label><input type="datetime-local" id="edit-os-datetime"></div>
+          <div class="form-group"><label>Nome *</label><input type="text" id="edit-os-nome" placeholder="Veículo/Equipamento"></div>
+          <div class="form-group"><label>Tipo Item *</label>
+            <select id="edit-os-tipoItem">
+              <option value="veiculo">Veículo</option>
+              <option value="equipamento">Equipamento</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Tipo Manutenção *</label>
+            <select id="edit-os-tipoManut">
+              <option value="Preventiva">Preventiva</option>
+              <option value="Corretiva">Corretiva</option>
+              <option value="Revisão">Revisão</option>
+              <option value="Troca de Óleo">Troca de Óleo</option>
+              <option value="Troca de Filtro">Troca de Filtro</option>
+              <option value="Freios">Freios</option>
+              <option value="Elétrica">Elétrica</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Prioridade</label>
+            <select id="edit-os-prioridade">
+              <option value="Normal">Normal</option>
+              <option value="Urgente">Urgente</option>
+              <option value="Preventiva">Preventiva</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Status</label>
+            <select id="edit-os-status">
+              <option value="Aberta">Aberta</option>
+              <option value="Em andamento">Em andamento</option>
+              <option value="Concluída">Concluída</option>
+              <option value="Cancelada">Cancelada</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Responsável</label><input type="text" id="edit-os-responsavel" placeholder="Responsável"></div>
+          <div class="form-group"><label>Custo Estimado (R$)</label><input type="number" id="edit-os-custoEstimado" step="0.01" min="0"></div>
+          <div class="form-group"><label>Custo Real (R$)</label><input type="number" id="edit-os-custoReal" step="0.01" min="0"></div>
+          <div class="form-group"><label>Horímetro/KM atual</label><input type="number" id="edit-os-medicao" step="0.1" min="0"></div>
+          <div class="form-group full"><label>Descrição *</label><textarea id="edit-os-descricao" rows="3" placeholder="Descreva o problema ou serviço..."></textarea></div>
+          <div class="form-group full"><label>Peças / Materiais utilizados</label><textarea id="edit-os-pecas" rows="2" placeholder="Peças e materiais..."></textarea></div>
+          <div class="form-group full"><label>Observação de conclusão</label><textarea id="edit-os-obsConclusao" rows="2" placeholder="Observações finais..."></textarea></div>
+        </div>
+        <div class="modal-actions"><button onclick="salvarEdicaoOS()" class="btn-submit-purple">💾 Salvar Alterações</button><button onclick="closeModalEditOS()" class="btn-secondary">Cancelar</button></div>
       </div>
     </div>
 
@@ -2984,6 +3101,20 @@
       document.documentElement.setAttribute('data-theme', 'dark');
     }
 
+    // Controle do botão Voltar ao Topo
+    function setupBackToTop() {
+      const backToTop = document.getElementById('backToTop');
+      if (!backToTop) return;
+      
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+          backToTop.classList.add('show');
+        } else {
+          backToTop.classList.remove('show');
+        }
+      });
+    }
+
     // Funções globais que serão usadas no HTML
     window.doLogin = async () => {
       const email = document.getElementById('inp-user').value.trim();
@@ -3141,6 +3272,7 @@
           themeIcon.textContent = savedThemeLocal === 'light' ? '☀️' : '🌙';
         }
         setupRealtimeListeners();
+        setupBackToTop();
         window.initApp();
       } else if (localStorage.getItem('cf_sessao_firebase') === '1') {
         document.getElementById('login-screen').style.display = 'flex';
@@ -3581,8 +3713,8 @@
     window.renderCompras = () => {
       const lista = window.compras || [];
       const tbody = document.getElementById('tbody-compras');
-      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div></td></tr>`; return; }
-      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</td><td style="white-space:nowrap;">${c.categoria}</td><td class="text-wrap" style="max-width:160px;">${c.descricao}</td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</td><td style="white-space:nowrap;">${c.pagamento}</td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</td><td style="white-space:nowrap;">${c.nf || '—'}</td><td style="white-space:nowrap;">${c.responsavel || '—'}</td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></td></tr>`).join('');
+      if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🛒</div><p>Nenhuma compra registrada ainda.</p></div>NonNull</td>`; return; }
+      tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</td><td style="white-space:nowrap;">${c.categoria}</td><td class="text-wrap" style="max-width:160px;">${c.descricao}</td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.dataPagamentoStr || '—'}</td><td style="white-space:nowrap;">${c.nf || '—'}</td><td style="white-space:nowrap;">${c.responsavel || '—'}</td><td style="white-space:nowrap;">${c.quantidade !== null ? c.quantidade : '—'}</td><td style="white-space:nowrap;">${c.custoUnit !== null ? 'R$ ' + c.custoUnit.toFixed(2) : '—'}</td><td class="text-wrap" style="max-width:140px;">${c.obs || '—'}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></td></tr>`).join('');
     };
 
     window.abrirModalEditarCompra = (id) => {
@@ -3696,9 +3828,9 @@
       document.getElementById('relatorio-qtd-periodo').textContent = lista.length;
       const tbody = document.getElementById('tbody-relatorio-compras');
       if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><p>Nenhuma compra encontrada com os filtros selecionados.</p></div>NonNull</tr>`;
       } else {
-        tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</td><td style="white-space:nowrap;">${c.categoria}</td><td class="text-wrap" style="max-width:180px;">${c.descricao}</td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</td><td style="white-space:nowrap;">${c.pagamento}</td><td style="white-space:nowrap;">${c.nf || '—'}</td><td style="white-space:nowrap;">${c.responsavel || '—'}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></td></tr>`).join('');
+        tbody.innerHTML = lista.map(c => `<tr><td style="white-space:nowrap;">${c.dataCompraStr}</td><td style="white-space:nowrap;">${c.fornecedor}</td><td style="white-space:nowrap;">${c.categoria}</td><td class="text-wrap" style="max-width:180px;">${c.descricao}</td><td style="white-space:nowrap;">R$ ${c.valor.toFixed(2)}</span></td><td style="white-space:nowrap;">${c.pagamento}</span></td><td style="white-space:nowrap;">${c.nf || '—'}</td><td style="white-space:nowrap;">${c.responsavel || '—'}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarCompra('${c.id}')" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirCompra('${c.id}')" title="Excluir">🗑</button></td></tr>`).join('');
       }
       document.getElementById('relatorio-compra-resultado').style.display = 'block';
     };
@@ -4209,6 +4341,88 @@
 
     window.closeModalEditAbast = () => { document.getElementById('modal-edit-abast').classList.remove('show'); };
 
+    // Funções para edição completa de OS
+    window.abrirModalEditarOS = (id) => {
+      const os = window.manutencoes.find(m => m.id === id);
+      if (!os) return;
+      
+      document.getElementById('edit-os-id').value = os.id;
+      
+      const dataObj = new Date(os.isoDate);
+      const year = dataObj.getFullYear();
+      const month = String(dataObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dataObj.getDate()).padStart(2, '0');
+      const hours = String(dataObj.getHours()).padStart(2, '0');
+      const minutes = String(dataObj.getMinutes()).padStart(2, '0');
+      document.getElementById('edit-os-datetime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+      
+      document.getElementById('edit-os-nome').value = os.nome || '';
+      document.getElementById('edit-os-tipoItem').value = os.tipoItem || 'veiculo';
+      document.getElementById('edit-os-tipoManut').value = os.tipoManut || '';
+      document.getElementById('edit-os-prioridade').value = os.prioridade || 'Normal';
+      document.getElementById('edit-os-status').value = os.status || 'Aberta';
+      document.getElementById('edit-os-responsavel').value = os.responsavel || '';
+      document.getElementById('edit-os-custoEstimado').value = os.custoEstimado !== null ? os.custoEstimado : '';
+      document.getElementById('edit-os-custoReal').value = os.custoReal !== null ? os.custoReal : '';
+      document.getElementById('edit-os-medicao').value = os.medicao !== null ? os.medicao : '';
+      document.getElementById('edit-os-descricao').value = os.descricao || '';
+      document.getElementById('edit-os-pecas').value = os.pecas || '';
+      document.getElementById('edit-os-obsConclusao').value = os.obsConclusao || '';
+      
+      document.getElementById('modal-edit-os').classList.add('show');
+    };
+
+    window.salvarEdicaoOS = async () => {
+      const id = document.getElementById('edit-os-id').value;
+      const datetimeStr = document.getElementById('edit-os-datetime').value;
+      const nome = document.getElementById('edit-os-nome').value.trim();
+      const tipoItem = document.getElementById('edit-os-tipoItem').value;
+      const tipoManut = document.getElementById('edit-os-tipoManut').value;
+      const prioridade = document.getElementById('edit-os-prioridade').value;
+      const status = document.getElementById('edit-os-status').value;
+      const responsavel = document.getElementById('edit-os-responsavel').value.trim();
+      const custoEstimado = parseFloat(document.getElementById('edit-os-custoEstimado').value) || null;
+      const custoReal = parseFloat(document.getElementById('edit-os-custoReal').value) || null;
+      const medicao = parseFloat(document.getElementById('edit-os-medicao').value) || null;
+      const descricao = document.getElementById('edit-os-descricao').value.trim();
+      const pecas = document.getElementById('edit-os-pecas').value.trim();
+      const obsConclusao = document.getElementById('edit-os-obsConclusao').value.trim();
+
+      if (!datetimeStr) return window.showAlert('manut-alert', 'error', '⚠ Data inválida.');
+      if (!nome) return window.showAlert('manut-alert', 'error', '⚠ Nome do veículo/equipamento obrigatório.');
+      if (!tipoManut) return window.showAlert('manut-alert', 'error', '⚠ Tipo de manutenção obrigatório.');
+      if (!descricao) return window.showAlert('manut-alert', 'error', '⚠ Descrição obrigatória.');
+
+      const novaData = new Date(datetimeStr);
+      const osRef = doc(db, "manutencoes", id);
+
+      await updateDoc(osRef, {
+        isoDate: novaData.toISOString(),
+        dt: window.formatDT(novaData),
+        nome: nome,
+        tipoItem: tipoItem,
+        tipoManut: tipoManut,
+        prioridade: prioridade,
+        status: status,
+        responsavel: responsavel,
+        custoEstimado: custoEstimado,
+        custoReal: custoReal,
+        medicao: medicao,
+        descricao: descricao,
+        pecas: pecas,
+        obsConclusao: obsConclusao
+      });
+
+      window.closeModalEditOS();
+      window.showAlert('manut-alert', 'success', '✔ OS editada com sucesso!');
+      window.renderManutHistorico();
+      window.renderManutDashboard();
+    };
+
+    window.closeModalEditOS = () => {
+      document.getElementById('modal-edit-os').classList.remove('show');
+    };
+
     // Função para redirecionar para OS com filtro
     window.irParaOSComFiltro = (status, manterPeriodo = true) => {
       document.getElementById('manut-filtro-responsavel').value = '';
@@ -4292,7 +4506,7 @@
       }
       
       if (lista.length === 0) {
-        tbody.innerHTML = `<table><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`;
+        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`;
         return;
       }
       
@@ -4308,7 +4522,11 @@
           <td style="white-space:nowrap;">${m.responsavel || '—'}</td>
           <td style="white-space:nowrap;">R$ ${custoDisplay.toFixed(2)}</span></td>
           <td class="text-wrap" style="max-width:180px;">${(m.descricao || '').substring(0, 50)}${(m.descricao || '').length > 50 ? '...' : ''}</span></td>
-          <td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalStatus('${m.id}')" style="color:var(--blue2);" title="Alterar Status">📝</button><button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button></span>
+          <td style="white-space:nowrap;">
+            <button class="btn-edit" onclick="window.abrirModalEditarOS('${m.id}')" title="Editar OS">✏️</button>
+            <button class="btn-status" onclick="window.abrirModalStatus('${m.id}')" title="Alterar Status">📝</button>
+            <button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button>
+          </span>
         </tr>`;
       }).join('');
     };
@@ -4642,7 +4860,7 @@
     window.excluirVeiculo = async (nome) => { if (!confirm(`Tem certeza que deseja excluir o veículo "${nome}"? Todos os abastecimentos e OS vinculados a ele serão perdidos.`)) return; let veiculos = [...(window.veiculosList || [])]; veiculos = veiculos.filter(e => e !== nome); await setDoc(veiculosDoc, { lista: veiculos }); const abastSnapshot = await getDocs(collection(db, "abastecimentos")); for (const docSnap of abastSnapshot.docs) { const data = docSnap.data(); if (data.equip === nome || data.equipOrig === nome) await deleteDoc(doc(db, "abastecimentos", docSnap.id)); } const manutSnapshot = await getDocs(collection(db, "manutencoes")); for (const docSnap of manutSnapshot.docs) { const data = docSnap.data(); if (data.tipoItem === 'veiculo' && data.nome === nome) await deleteDoc(doc(db, "manutencoes", docSnap.id)); } window.showAlert('veic-alert', 'success', '✔ Veículo excluído e registros vinculados removidos.'); };
 
     window.atualizarSelectsEquipamentos = () => { const equipamentos = window.equipamentosList || []; const select = document.getElementById('manut-equipamento'); if (!select) return; const currentValue = select.value; let placeholder = select.querySelector('option[value=""]'); select.innerHTML = ''; if (placeholder) select.appendChild(placeholder); else { const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Selecione...'; select.appendChild(opt); } equipamentos.forEach(eq => { const option = document.createElement('option'); option.value = eq; option.textContent = eq; select.appendChild(option); }); if (currentValue && equipamentos.includes(currentValue)) select.value = currentValue; else select.value = ''; };
-    window.renderEquipamentos = () => { const equipamentos = window.equipamentosList || []; const tbody = document.getElementById('tbody-equipamentos'); if (!tbody) return; if (equipamentos.length === 0) { tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Nenhum equipamento cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = equipamentos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarEquipamento('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEquipamento('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></td></tr>`).join(''); };
+    window.renderEquipamentos = () => { const equipamentos = window.equipamentosList || []; const tbody = document.getElementById('tbody-equipamentos'); if (!tbody) return; if (equipamentos.length === 0) { tbody.innerHTML = `<td><td colspan="2"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Nenhum equipamento cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = equipamentos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarEquipamento('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEquipamento('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></td></tr>`).join(''); };
     window.acrescentarEquipamento = async () => { const nome = document.getElementById('novo-equipamento-nome').value.trim(); if (!nome) { window.showAlert('equip-alert', 'error', '⚠ Digite o nome do equipamento.'); return; } const equipamentos = window.equipamentosList || []; if (equipamentos.includes(nome)) { window.showAlert('equip-alert', 'error', '⚠ Equipamento já cadastrado.'); return; } equipamentos.push(nome); await setDoc(equipamentosDoc, { lista: equipamentos }); document.getElementById('novo-equipamento-nome').value = ''; window.showAlert('equip-alert', 'success', '✔ Equipamento adicionado com sucesso!'); };
     window.abrirModalEditarEquipamento = (nomeAtual) => { document.getElementById('modal-equip-id').value = nomeAtual; document.getElementById('modal-equip-nome').value = nomeAtual; document.getElementById('modal-editar-equipamento').classList.add('show'); };
     window.closeModalEquipamento = () => { document.getElementById('modal-editar-equipamento').classList.remove('show'); };
