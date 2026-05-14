@@ -1994,6 +1994,13 @@
             <div class="nav-item" id="nav-manut-dashboard" onclick="showSection('manut-dashboard',this)">
               <span class="nav-icon">📊</span> Painel
             </div>
+            <!-- NOVO: Módulo Venda -->
+            <div class="nav-item" id="nav-venda-cadastrar" onclick="showSection('venda-cadastrar',this)">
+              <span class="nav-icon">💰</span> Cadastrar Venda
+            </div>
+            <div class="nav-item" id="nav-venda-relatorio" onclick="showSection('venda-relatorio',this)">
+              <span class="nav-icon">📊</span> Relatório de Vendas
+            </div>
           </div>
         </div>
         <div class="nav-group" id="group-configuracao">
@@ -2443,7 +2450,7 @@
           <div class="form-card" style="margin-top:12px;">
             <h3>📋 Compras Registradas</h3>
             <div class="table-wrap">
-              <td>
+              <table>
                 <thead>
                   <tr>
                     <th>Data</th>
@@ -2729,6 +2736,117 @@
           </div>
         </div>
 
+        <!-- VENDA - CADASTRAR -->
+        <div class="section" id="section-venda-cadastrar">
+          <div class="form-card">
+            <h3>💰 Cadastrar Venda</h3>
+            <div class="alert" id="venda-alert"></div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Data e Hora *</label>
+                <div class="dt-row">
+                  <input type="text" id="venda-datetime" readonly style="opacity:.7;cursor:default;"
+                    placeholder="dd/mm/aaaa hh:mm">
+                  <button type="button" onclick="editarDataHora('venda')" class="dt-edit-btn" title="Editar">✏️</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Comprador *</label>
+                <input type="text" id="venda-comprador" placeholder="Nome do comprador" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label>Produto *</label>
+                <input type="text" id="venda-produto" placeholder="Nome do produto" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label>Peso Líquido *</label>
+                <input type="number" id="venda-peso" placeholder="Ex: 10.5" step="0.01" min="0" inputmode="decimal"
+                  oninput="calcularTotalVenda()">
+              </div>
+              <div class="form-group">
+                <label>Preço (R$) *</label>
+                <input type="number" id="venda-preco" placeholder="Ex: 25.90" step="0.01" min="0" inputmode="decimal"
+                  oninput="calcularTotalVenda()">
+              </div>
+              <div class="form-group">
+                <label>Unidade *</label>
+                <select id="venda-unidade">
+                  <option value="">Selecione...</option>
+                  <option value="KG">KG</option>
+                  <option value="L">L</option>
+                  <option value="UN">UN</option>
+                  <option value="M">M</option>
+                  <option value="M²">M²</option>
+                  <option value="M³">M³</option>
+                  <option value="CX">CX</option>
+                  <option value="PC">PC</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Total R$ *</label>
+                <input type="text" id="venda-total" readonly style="background:var(--bg4); font-weight:bold;"
+                  placeholder="R$ 0,00">
+              </div>
+              <div class="form-group">
+                <label>Observação</label>
+                <textarea id="venda-obs" placeholder="Informações adicionais..."></textarea>
+              </div>
+            </div>
+            <div style="margin-top:12px;">
+              <button class="btn-submit btn-full" onclick="salvarVenda()">✔ Registrar Venda</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VENDA - RELATÓRIO -->
+        <div class="section" id="section-venda-relatorio">
+          <div class="form-card">
+            <h3>📊 Relatório de Vendas</h3>
+            <div class="filter-row">
+              <div class="form-group">
+                <label>Período de</label>
+                <input type="date" id="venda-filtro-de">
+              </div>
+              <div class="form-group">
+                <label>Até</label>
+                <input type="date" id="venda-filtro-ate">
+              </div>
+              <div class="form-group">
+                <label>Comprador</label>
+                <input type="text" id="venda-filtro-comprador" placeholder="Filtrar por comprador">
+              </div>
+              <div class="filter-actions">
+                <button class="btn-submit" onclick="renderRelatorioVendas()">🔎 Filtrar</button>
+                <button class="btn-excel" onclick="exportarRelatorioVendasExcel()">📊 Exportar Excel</button>
+                <button class="btn-secondary" onclick="salvarRelatorioVendasPDF()">📄 Salvar PDF</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-card" style="padding:0;overflow:hidden;">
+            <div style="padding:14px 16px 0;border-bottom:1px solid var(--border);margin-bottom:0;">
+              <h3 style="border-bottom:none;margin-bottom:10px;">📋 Vendas Realizadas</h3>
+            </div>
+            <div class="table-wrap" style="border:none;border-radius:0;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data / Hora</th>
+                    <th>Comprador</th>
+                    <th>Produto</th>
+                    <th>Peso</th>
+                    <th>Preço (R$)</th>
+                    <th>Unidade</th>
+                    <th>Total (R$)</th>
+                    <th>Obs</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-vendas"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- CONFIGURAÇÃO - GERENCIAR VEÍCULOS -->
         <div class="section" id="section-veiculos">
           <div class="form-card">
@@ -2782,7 +2900,7 @@
           <div class="form-card">
             <h3>📋 Lista de Equipamentos (editar/excluir)</h3>
             <div class="table-wrap">
-              </table>
+              <table>
                 <thead>
                   <tr>
                     <th>Equipamento</th>
@@ -3033,7 +3151,7 @@
       </div>
     </div>
 
-    <!-- NOVO MODAL: EDITAR EVENTO (ENTRADA / CORREÇÃO) -->
+    <!-- MODAL EDITAR EVENTO (ENTRADA / CORREÇÃO) -->
     <div id="modal-edit-evento" class="modal-bg center" onclick="if(event.target===this)closeModalEditEvento()">
       <div class="modal-sheet center-modal" style="max-width:700px;">
         <div class="modal-header"><span>✏️ Editar Entrada / Correção</span><button class="modal-close"
@@ -3049,6 +3167,39 @@
         </div>
         <div class="modal-actions"><button onclick="salvarEdicaoEvento()" class="btn-submit">💾 Salvar</button><button
             onclick="closeModalEditEvento()" class="btn-secondary">Cancelar</button></div>
+      </div>
+    </div>
+
+    <!-- MODAL EDITAR VENDA -->
+    <div id="modal-edit-venda" class="modal-bg center" onclick="if(event.target===this)closeModalEditVenda()">
+      <div class="modal-sheet center-modal" style="max-width:700px;">
+        <div class="modal-header"><span>✏️ Editar Venda</span><button class="modal-close"
+            onclick="closeModalEditVenda()">×</button></div>
+        <input type="hidden" id="edit-venda-id">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group"><label>Data/Hora *</label><input type="datetime-local" id="edit-venda-datetime"></div>
+          <div class="form-group"><label>Comprador *</label><input type="text" id="edit-venda-comprador"></div>
+          <div class="form-group"><label>Produto *</label><input type="text" id="edit-venda-produto"></div>
+          <div class="form-group"><label>Peso Líquido *</label><input type="number" id="edit-venda-peso" step="0.01"></div>
+          <div class="form-group"><label>Preço (R$) *</label><input type="number" id="edit-venda-preco" step="0.01"></div>
+          <div class="form-group"><label>Unidade *</label>
+            <select id="edit-venda-unidade">
+              <option value="">Selecione...</option>
+              <option value="KG">KG</option>
+              <option value="L">L</option>
+              <option value="UN">UN</option>
+              <option value="M">M</option>
+              <option value="M²">M²</option>
+              <option value="M³">M³</option>
+              <option value="CX">CX</option>
+              <option value="PC">PC</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Total (R$)</label><input type="text" id="edit-venda-total" readonly style="background:var(--bg4);"></div>
+          <div class="form-group full" style="grid-column:span 2;"><label>Observação</label><textarea id="edit-venda-obs" rows="2"></textarea></div>
+        </div>
+        <div class="modal-actions"><button onclick="salvarEdicaoVenda()" class="btn-submit">💾 Salvar</button><button
+            onclick="closeModalEditVenda()" class="btn-secondary">Cancelar</button></div>
       </div>
     </div>
 
@@ -3077,6 +3228,7 @@
     const entradasCollection = collection(db, "entradas");
     const manutCollection = collection(db, "manutencoes");
     const comprasCollection = collection(db, "compras");
+    const vendasCollection = collection(db, "vendas");
     const veiculosDoc = doc(db, "configuracoes", "veiculos");
     const equipamentosDoc = doc(db, "configuracoes", "equipamentos");
     const estoqueDoc = doc(db, "configuracoes", "estoque");
@@ -3165,6 +3317,11 @@
           await deleteDoc(docSnap.ref);
         }
 
+        const vendasSnapshot = await getDocs(vendasCollection);
+        for (const docSnap of vendasSnapshot.docs) {
+          await deleteDoc(docSnap.ref);
+        }
+
         await setDoc(estoqueDoc, { valor: 0 });
 
         alertDiv.className = 'alert show success';
@@ -3190,7 +3347,7 @@
     };
 
     window.confirmarLimpezaTotal = () => {
-      if (confirm('⚠️ ATENÇÃO! Isso irá APAGAR PERMANENTEMENTE:\n\n- Todos os abastecimentos\n- Todas as entradas de combustível\n- Todas as compras\n- Todas as ordens de serviço\n- Zerar o estoque\n\nAs configurações de veículos e equipamentos serão PRESERVADAS.\n\nEsta ação NÃO PODE SER DESFEITA! Continuar?')) {
+      if (confirm('⚠️ ATENÇÃO! Isso irá APAGAR PERMANENTEMENTE:\n\n- Todos os abastecimentos\n- Todas as entradas de combustível\n- Todas as compras\n- Todas as ordens de serviço\n- Todas as vendas\n- Zerar o estoque\n\nAs configurações de veículos e equipamentos serão PRESERVADAS.\n\nEsta ação NÃO PODE SER DESFEITA! Continuar?')) {
         if (confirm('ÚLTIMA CONFIRMAÇÃO: Tem certeza absoluta que deseja apagar TODOS os dados do sistema?')) {
           window.limparTodosOsDados();
         }
@@ -3223,6 +3380,12 @@
         if (window.currentSection === 'dashboard') window.updateDashboard();
         if (window.currentSection === 'compras-registro') window.renderCompras();
         if (window.currentSection === 'compras-relatorio') window.gerarRelatorioCompras();
+      });
+
+      onSnapshot(query(vendasCollection, orderBy("isoDate", "desc")), (snapshot) => {
+        window.vendas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (window.currentSection === 'dashboard') window.updateDashboard();
+        if (window.currentSection === 'venda-relatorio') window.renderRelatorioVendas();
       });
 
       onSnapshot(veiculosDoc, (snapshot) => {
@@ -3289,6 +3452,7 @@
     window.entradas = [];
     window.manutencoes = [];
     window.compras = [];
+    window.vendas = [];
     window.veiculosList = [];
     window.equipamentosList = [];
     window.estoqueAtual = 0;
@@ -3297,11 +3461,13 @@
       window.updateDateTime('abast-datetime');
       window.updateDateTime('entrada-datetime');
       window.updateDateTime('manut-datetime');
+      window.updateDateTime('venda-datetime');
       window.setDefaultCompraData();
       setInterval(() => {
         window.updateDateTime('abast-datetime');
         window.updateDateTime('entrada-datetime');
         window.updateDateTime('manut-datetime');
+        window.updateDateTime('venda-datetime');
       }, 10000);
       window.updateDashboard();
       window.renderCompras();
@@ -3344,6 +3510,7 @@
         dashboard: 'Dashboard', abastecimento: 'Registrar Abastecimento', entrada: 'Entrada de Combustível',
         relatorio: 'Relatório Analítico', 'compras-registro': 'Compras - Registro', 'compras-relatorio': 'Compras - Relatório',
         'manut-registro': 'Registrar OS', 'manut-historico': 'Ordens de Serviço', 'manut-dashboard': 'Painel de Manutenção',
+        'venda-cadastrar': 'Cadastrar Venda', 'venda-relatorio': 'Relatório de Vendas',
         veiculos: 'Configuração - Veículos', equipamentos: 'Configuração - Equipamentos'
       };
       document.getElementById('page-title').textContent = sectionTitles[id] || id;
@@ -3361,6 +3528,8 @@
       if (id === 'manut-registro') window.updateDateTime('manut-datetime');
       if (id === 'manut-historico') window.renderManutHistorico();
       if (id === 'manut-dashboard') window.renderManutDashboard();
+      if (id === 'venda-cadastrar') window.updateDateTime('venda-datetime');
+      if (id === 'venda-relatorio') window.renderRelatorioVendas();
       if (id === 'veiculos') window.renderVeiculos();
       if (id === 'equipamentos') window.renderEquipamentos();
     };
@@ -3398,6 +3567,344 @@
       const grp = document.getElementById('medicao-group');
       if (tipo === 'nenhum') { grp.style.display = 'none'; document.getElementById('abast-medicao').value = ''; }
       else { grp.style.display = 'block'; document.getElementById('med-label').textContent = tipo === 'km' ? 'Quilometragem atual (km)' : 'Horímetro atual (h)'; }
+    };
+
+    // Função para calcular total da venda em tempo real
+    window.calcularTotalVenda = () => {
+      const peso = parseFloat(document.getElementById('venda-peso').value) || 0;
+      const preco = parseFloat(document.getElementById('venda-preco').value) || 0;
+      const total = peso * preco;
+      document.getElementById('venda-total').value = total.toFixed(2);
+      
+      // Também atualiza o modal de edição se estiver aberto
+      if (document.getElementById('edit-venda-total')) {
+        const pesoEdit = parseFloat(document.getElementById('edit-venda-peso').value) || 0;
+        const precoEdit = parseFloat(document.getElementById('edit-venda-preco').value) || 0;
+        document.getElementById('edit-venda-total').value = (pesoEdit * precoEdit).toFixed(2);
+      }
+    };
+
+    // Salvar Venda
+    window.salvarVenda = async () => {
+      const comprador = document.getElementById('venda-comprador').value.trim();
+      const produto = document.getElementById('venda-produto').value.trim();
+      const peso = parseFloat(document.getElementById('venda-peso').value);
+      const preco = parseFloat(document.getElementById('venda-preco').value);
+      const unidade = document.getElementById('venda-unidade').value;
+      const total = peso * preco;
+      const obs = document.getElementById('venda-obs').value.trim();
+      const dtStr = document.getElementById('venda-datetime').value;
+
+      if (!comprador) return window.showAlert('venda-alert', 'error', '⚠ Informe o comprador.');
+      if (!produto) return window.showAlert('venda-alert', 'error', '⚠ Informe o produto.');
+      if (isNaN(peso) || peso <= 0) return window.showAlert('venda-alert', 'error', '⚠ Informe o peso líquido.');
+      if (isNaN(preco) || preco <= 0) return window.showAlert('venda-alert', 'error', '⚠ Informe o preço.');
+      if (!unidade) return window.showAlert('venda-alert', 'error', '⚠ Selecione a unidade.');
+
+      const now = window.parseDTString(dtStr) || new Date();
+
+      await addDoc(vendasCollection, {
+        isoDate: now.toISOString(),
+        dt: window.formatDT(now),
+        comprador: comprador,
+        produto: produto,
+        peso: peso,
+        preco: preco,
+        unidade: unidade,
+        total: total,
+        obs: obs
+      });
+
+      document.getElementById('venda-comprador').value = '';
+      document.getElementById('venda-produto').value = '';
+      document.getElementById('venda-peso').value = '';
+      document.getElementById('venda-preco').value = '';
+      document.getElementById('venda-unidade').value = '';
+      document.getElementById('venda-obs').value = '';
+      document.getElementById('venda-total').value = '';
+      window.updateDateTime('venda-datetime');
+
+      window.showAlert('venda-alert', 'success', '✔ Venda registrada com sucesso!');
+    };
+
+    // Renderizar Relatório de Vendas
+    window.renderRelatorioVendas = () => {
+      const de = document.getElementById('venda-filtro-de').value;
+      const ate = document.getElementById('venda-filtro-ate').value;
+      const filtroComprador = document.getElementById('venda-filtro-comprador').value.trim().toLowerCase();
+
+      let lista = window.vendas || [];
+
+      if (de) {
+        lista = lista.filter(v => new Date(v.isoDate) >= new Date(de + 'T00:00:00'));
+      }
+      if (ate) {
+        lista = lista.filter(v => new Date(v.isoDate) <= new Date(ate + 'T23:59:59'));
+      }
+      if (filtroComprador) {
+        lista = lista.filter(v => v.comprador.toLowerCase().includes(filtroComprador));
+      }
+
+      lista.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
+
+      const tbody = document.getElementById('tbody-vendas');
+      if (!tbody) return;
+
+      if (lista.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💰</div><p>Nenhuma venda encontrada.</p></div>NonNull</tr>`;
+        return;
+      }
+
+      tbody.innerHTML = lista.map(v => `<tr>
+        <td style="white-space:nowrap;">${v.dt}</span>
+        <td style="white-space:nowrap;">${v.comprador}</span>
+        <td style="white-space:nowrap;">${v.produto}</span>
+        <td style="white-space:nowrap;">${v.peso.toFixed(2)} ${v.unidade}</span>
+        <td style="white-space:nowrap;">R$ ${v.preco.toFixed(2)}</span>
+        <td style="white-space:nowrap;">${v.unidade}</span>
+        <td style="white-space:nowrap; font-weight:bold; color:var(--green);">R$ ${v.total.toFixed(2)}</span>
+        <td class="text-wrap">${v.obs || '—'}</span>
+        <td style="white-space:nowrap;">
+          <button class="btn-edit" onclick="window.abrirModalEditarVenda('${v.id}')" title="Editar">✏️</button>
+          <button class="btn-del" onclick="window.excluirVenda('${v.id}')" title="Excluir">🗑</button>
+        </span>
+      </tr>`).join('');
+    };
+
+    // Abrir Modal Editar Venda
+    window.abrirModalEditarVenda = (id) => {
+      const venda = window.vendas.find(v => v.id === id);
+      if (!venda) return;
+
+      document.getElementById('edit-venda-id').value = venda.id;
+      
+      const dataObj = new Date(venda.isoDate);
+      const year = dataObj.getFullYear();
+      const month = String(dataObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dataObj.getDate()).padStart(2, '0');
+      const hours = String(dataObj.getHours()).padStart(2, '0');
+      const minutes = String(dataObj.getMinutes()).padStart(2, '0');
+      document.getElementById('edit-venda-datetime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+      
+      document.getElementById('edit-venda-comprador').value = venda.comprador;
+      document.getElementById('edit-venda-produto').value = venda.produto;
+      document.getElementById('edit-venda-peso').value = venda.peso;
+      document.getElementById('edit-venda-preco').value = venda.preco;
+      document.getElementById('edit-venda-unidade').value = venda.unidade;
+      document.getElementById('edit-venda-obs').value = venda.obs || '';
+      document.getElementById('edit-venda-total').value = venda.total.toFixed(2);
+
+      // Adicionar evento de cálculo automático no modal
+      const pesoInput = document.getElementById('edit-venda-peso');
+      const precoInput = document.getElementById('edit-venda-preco');
+      
+      const updateModalTotal = () => {
+        const pesoVal = parseFloat(pesoInput.value) || 0;
+        const precoVal = parseFloat(precoInput.value) || 0;
+        document.getElementById('edit-venda-total').value = (pesoVal * precoVal).toFixed(2);
+      };
+      
+      pesoInput.oninput = updateModalTotal;
+      precoInput.oninput = updateModalTotal;
+
+      document.getElementById('modal-edit-venda').classList.add('show');
+    };
+
+    // Salvar Edição de Venda
+    window.salvarEdicaoVenda = async () => {
+      const id = document.getElementById('edit-venda-id').value;
+      const datetimeStr = document.getElementById('edit-venda-datetime').value;
+      const comprador = document.getElementById('edit-venda-comprador').value.trim();
+      const produto = document.getElementById('edit-venda-produto').value.trim();
+      const peso = parseFloat(document.getElementById('edit-venda-peso').value);
+      const preco = parseFloat(document.getElementById('edit-venda-preco').value);
+      const unidade = document.getElementById('edit-venda-unidade').value;
+      const total = peso * preco;
+      const obs = document.getElementById('edit-venda-obs').value.trim();
+
+      if (!datetimeStr) return window.showAlert('venda-alert', 'error', '⚠ Data/hora inválida.');
+      if (!comprador) return window.showAlert('venda-alert', 'error', '⚠ Comprador obrigatório.');
+      if (!produto) return window.showAlert('venda-alert', 'error', '⚠ Produto obrigatório.');
+      if (isNaN(peso) || peso <= 0) return window.showAlert('venda-alert', 'error', '⚠ Peso inválido.');
+      if (isNaN(preco) || preco <= 0) return window.showAlert('venda-alert', 'error', '⚠ Preço inválido.');
+      if (!unidade) return window.showAlert('venda-alert', 'error', '⚠ Unidade obrigatória.');
+
+      const novaData = new Date(datetimeStr);
+      const vendaRef = doc(db, "vendas", id);
+
+      await updateDoc(vendaRef, {
+        isoDate: novaData.toISOString(),
+        dt: window.formatDT(novaData),
+        comprador: comprador,
+        produto: produto,
+        peso: peso,
+        preco: preco,
+        unidade: unidade,
+        total: total,
+        obs: obs
+      });
+
+      window.closeModalEditVenda();
+      window.showAlert('venda-alert', 'success', '✔ Venda editada com sucesso!');
+    };
+
+    // Excluir Venda
+    window.excluirVenda = async (id) => {
+      if (!confirm('Excluir esta venda permanentemente?')) return;
+      await deleteDoc(doc(db, "vendas", id));
+      window.showAlert('venda-alert', 'success', '✔ Venda excluída!');
+    };
+
+    // Fechar Modal Editar Venda
+    window.closeModalEditVenda = () => {
+      document.getElementById('modal-edit-venda').classList.remove('show');
+    };
+
+    // Exportar Relatório de Vendas para Excel
+    window.exportarRelatorioVendasExcel = () => {
+      const de = document.getElementById('venda-filtro-de').value;
+      const ate = document.getElementById('venda-filtro-ate').value;
+      const filtroComprador = document.getElementById('venda-filtro-comprador').value.trim().toLowerCase();
+
+      let lista = window.vendas || [];
+
+      if (de) {
+        lista = lista.filter(v => new Date(v.isoDate) >= new Date(de + 'T00:00:00'));
+      }
+      if (ate) {
+        lista = lista.filter(v => new Date(v.isoDate) <= new Date(ate + 'T23:59:59'));
+      }
+      if (filtroComprador) {
+        lista = lista.filter(v => v.comprador.toLowerCase().includes(filtroComprador));
+      }
+
+      if (lista.length === 0) {
+        alert('Nenhuma venda para exportar.');
+        return;
+      }
+
+      const dados = lista.map(v => ({
+        'Data/Hora': v.dt,
+        'Comprador': v.comprador,
+        'Produto': v.produto,
+        'Peso Líquido': `${v.peso.toFixed(2)} ${v.unidade}`,
+        'Preço Unitário (R$)': v.preco.toFixed(2),
+        'Unidade': v.unidade,
+        'Total (R$)': v.total.toFixed(2),
+        'Observação': v.obs || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Relatorio Vendas');
+      const nomeArquivo = `relatorio_vendas_${de || 'inicio'}_a_${ate || 'hoje'}.xlsx`;
+      XLSX.writeFile(wb, nomeArquivo);
+    };
+
+    // Salvar Relatório de Vendas em PDF
+    window.salvarRelatorioVendasPDF = () => {
+      const de = document.getElementById('venda-filtro-de').value;
+      const ate = document.getElementById('venda-filtro-ate').value;
+      const filtroComprador = document.getElementById('venda-filtro-comprador').value.trim().toLowerCase();
+
+      let lista = window.vendas || [];
+
+      if (de) {
+        lista = lista.filter(v => new Date(v.isoDate) >= new Date(de + 'T00:00:00'));
+      }
+      if (ate) {
+        lista = lista.filter(v => new Date(v.isoDate) <= new Date(ate + 'T23:59:59'));
+      }
+      if (filtroComprador) {
+        lista = lista.filter(v => v.comprador.toLowerCase().includes(filtroComprador));
+      }
+
+      if (lista.length === 0) {
+        alert('Nenhuma venda para exportar.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const docp = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      
+      // Cabeçalho
+      docp.setFillColor(11, 15, 26);
+      docp.rect(0, 0, 297, 25, 'F');
+      docp.setTextColor(245, 158, 11);
+      docp.setFontSize(20);
+      docp.text('CONTROLE DE OPERACOES', 14, 13);
+      docp.setFontSize(10);
+      docp.setTextColor(148, 163, 184);
+      docp.text('Relatorio de Vendas', 14, 20);
+      
+      // Filtros
+      docp.setFontSize(9);
+      docp.setTextColor(200, 200, 200);
+      docp.text(`Período: ${de || 'início'} a ${ate || 'hoje'}`, 14, 32);
+      if (filtroComprador) docp.text(`Comprador: ${filtroComprador}`, 14, 38);
+      
+      // Calcular total
+      const totalGeral = lista.reduce((s, v) => s + v.total, 0);
+      docp.text(`Total de Vendas: R$ ${totalGeral.toFixed(2)} | ${lista.length} registros`, 14, 45);
+      
+      // Colunas
+      const cols = ['Data/Hora', 'Comprador', 'Produto', 'Peso', 'Preço (R$)', 'Unidade', 'Total (R$)', 'Obs'];
+      const colW = [30, 40, 35, 25, 25, 20, 30, 45];
+      let x = 14, y = 55;
+      
+      docp.setFillColor(17, 24, 39);
+      docp.rect(x, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F');
+      docp.setFontSize(7);
+      docp.setTextColor(100, 116, 139);
+      docp.setFont('helvetica', 'bold');
+      cols.forEach((c, i) => { docp.text(c, x + 2, y); x += colW[i]; });
+      y += 6;
+      docp.setFont('helvetica', 'normal');
+      docp.setFontSize(7);
+      
+      // Dados
+      lista.forEach((venda, idx) => {
+        if (y > 185) {
+          docp.addPage();
+          y = 20;
+          docp.setFillColor(17, 24, 39);
+          docp.rect(14, y - 5, colW.reduce((a, b) => a + b, 0), 7, 'F');
+          docp.setFontSize(7);
+          docp.setTextColor(100, 116, 139);
+          docp.setFont('helvetica', 'bold');
+          let xh = 14;
+          cols.forEach((c, i) => { docp.text(c, xh + 2, y); xh += colW[i]; });
+          y += 6;
+          docp.setFont('helvetica', 'normal');
+        }
+        
+        if (idx % 2 === 0) {
+          docp.setFillColor(26, 34, 53);
+          docp.rect(14, y - 4, colW.reduce((s, b) => s + b, 0), 6, 'F');
+        }
+        
+        docp.setTextColor(220, 220, 220);
+        docp.text(venda.dt, 14 + 2, y);
+        docp.text(venda.comprador.substring(0, 20), 14 + colW[0] + 2, y);
+        docp.text(venda.produto.substring(0, 20), 14 + colW[0] + colW[1] + 2, y);
+        docp.text(`${venda.peso.toFixed(2)}`, 14 + colW[0] + colW[1] + colW[2] + 2, y);
+        docp.text(venda.preco.toFixed(2), 14 + colW[0] + colW[1] + colW[2] + colW[3] + 2, y);
+        docp.text(venda.unidade, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 2, y);
+        docp.text(`R$ ${venda.total.toFixed(2)}`, 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + 2, y);
+        docp.text((venda.obs || '—').substring(0, 30), 14 + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + colW[5] + colW[6] + 2, y);
+        y += 7;
+      });
+      
+      const tp = docp.internal.getNumberOfPages();
+      for (let p = 1; p <= tp; p++) {
+        docp.setPage(p);
+        docp.setFontSize(8);
+        docp.setTextColor(100, 116, 139);
+        docp.text('Controle de Operacoes', 14, 205);
+        docp.text('Pagina ' + p + ' / ' + tp, 297 - 14, 205, { align: 'right' });
+      }
+      
+      docp.save(`relatorio_vendas_${de || 'inicio'}_a_${ate || 'hoje'}.pdf`);
     };
 
     window.showAlert = (id, type, msg) => {
@@ -4527,7 +5034,7 @@
             <button class="btn-status" onclick="window.abrirModalStatus('${m.id}')" title="Alterar Status">📝</button>
             <button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button>
           </span>
-        </tr>`;
+        </table>`;
       }).join('');
     };
 
@@ -4860,7 +5367,7 @@
     window.excluirVeiculo = async (nome) => { if (!confirm(`Tem certeza que deseja excluir o veículo "${nome}"? Todos os abastecimentos e OS vinculados a ele serão perdidos.`)) return; let veiculos = [...(window.veiculosList || [])]; veiculos = veiculos.filter(e => e !== nome); await setDoc(veiculosDoc, { lista: veiculos }); const abastSnapshot = await getDocs(collection(db, "abastecimentos")); for (const docSnap of abastSnapshot.docs) { const data = docSnap.data(); if (data.equip === nome || data.equipOrig === nome) await deleteDoc(doc(db, "abastecimentos", docSnap.id)); } const manutSnapshot = await getDocs(collection(db, "manutencoes")); for (const docSnap of manutSnapshot.docs) { const data = docSnap.data(); if (data.tipoItem === 'veiculo' && data.nome === nome) await deleteDoc(doc(db, "manutencoes", docSnap.id)); } window.showAlert('veic-alert', 'success', '✔ Veículo excluído e registros vinculados removidos.'); };
 
     window.atualizarSelectsEquipamentos = () => { const equipamentos = window.equipamentosList || []; const select = document.getElementById('manut-equipamento'); if (!select) return; const currentValue = select.value; let placeholder = select.querySelector('option[value=""]'); select.innerHTML = ''; if (placeholder) select.appendChild(placeholder); else { const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Selecione...'; select.appendChild(opt); } equipamentos.forEach(eq => { const option = document.createElement('option'); option.value = eq; option.textContent = eq; select.appendChild(option); }); if (currentValue && equipamentos.includes(currentValue)) select.value = currentValue; else select.value = ''; };
-    window.renderEquipamentos = () => { const equipamentos = window.equipamentosList || []; const tbody = document.getElementById('tbody-equipamentos'); if (!tbody) return; if (equipamentos.length === 0) { tbody.innerHTML = `<td><td colspan="2"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Nenhum equipamento cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = equipamentos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarEquipamento('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEquipamento('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></td></tr>`).join(''); };
+    window.renderEquipamentos = () => { const equipamentos = window.equipamentosList || []; const tbody = document.getElementById('tbody-equipamentos'); if (!tbody) return; if (equipamentos.length === 0) { tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Nenhum equipamento cadastrado.</p></div>NonNull</tr>`; return; } tbody.innerHTML = equipamentos.map(eq => `<tr><td style="white-space:nowrap;">${eq}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="window.abrirModalEditarEquipamento('${eq.replace(/'/g, "\\'")}')" style="color:var(--blue2);" title="Editar">✏️</button><button class="btn-del" onclick="window.excluirEquipamento('${eq.replace(/'/g, "\\'")}')" title="Excluir">🗑</button></td></tr>`).join(''); };
     window.acrescentarEquipamento = async () => { const nome = document.getElementById('novo-equipamento-nome').value.trim(); if (!nome) { window.showAlert('equip-alert', 'error', '⚠ Digite o nome do equipamento.'); return; } const equipamentos = window.equipamentosList || []; if (equipamentos.includes(nome)) { window.showAlert('equip-alert', 'error', '⚠ Equipamento já cadastrado.'); return; } equipamentos.push(nome); await setDoc(equipamentosDoc, { lista: equipamentos }); document.getElementById('novo-equipamento-nome').value = ''; window.showAlert('equip-alert', 'success', '✔ Equipamento adicionado com sucesso!'); };
     window.abrirModalEditarEquipamento = (nomeAtual) => { document.getElementById('modal-equip-id').value = nomeAtual; document.getElementById('modal-equip-nome').value = nomeAtual; document.getElementById('modal-editar-equipamento').classList.add('show'); };
     window.closeModalEquipamento = () => { document.getElementById('modal-editar-equipamento').classList.remove('show'); };
