@@ -1994,9 +1994,18 @@
             <div class="nav-item" id="nav-manut-dashboard" onclick="showSection('manut-dashboard',this)">
               <span class="nav-icon">📊</span> Painel
             </div>
-            <!-- NOVO: Módulo Venda -->
+          </div>
+        </div>
+        <!-- NOVO: Aba Vendas -->
+        <div class="nav-group" id="group-vendas">
+          <div class="nav-group-header" onclick="toggleGroup('group-vendas')">
+            <span class="ng-icon">💰</span>
+            <span>Vendas</span>
+            <span class="ng-arrow">▶</span>
+          </div>
+          <div class="nav-group-children" id="children-group-vendas">
             <div class="nav-item" id="nav-venda-cadastrar" onclick="showSection('venda-cadastrar',this)">
-              <span class="nav-icon">💰</span> Cadastrar Venda
+              <span class="nav-icon">➕</span> Cadastrar Venda
             </div>
             <div class="nav-item" id="nav-venda-relatorio" onclick="showSection('venda-relatorio',this)">
               <span class="nav-icon">📊</span> Relatório de Vendas
@@ -5013,7 +5022,7 @@
       }
       
       if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</tr>`;
+        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔧</div><p>Nenhuma OS encontrada.</p></div>NonNull</td>`;
         return;
       }
       
@@ -5034,7 +5043,7 @@
             <button class="btn-status" onclick="window.abrirModalStatus('${m.id}')" title="Alterar Status">📝</button>
             <button class="btn-del" onclick="window.delManut('${m.id}')" title="Excluir">🗑</button>
           </span>
-        </table>`;
+        </tr>`;
       }).join('');
     };
 
